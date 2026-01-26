@@ -44,13 +44,13 @@ We will build the application using **ASP.NET Core with Razor Pages** for the us
           ▼                ▼                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Domain Modules                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐│
-│  │   Session   │  │   Framing   │  │ Resolution  │  │ Outcome ││
-│  │             │  │             │  │             │  │         ││
-│  │ - Create    │  │ - Prize     │  │ - Roll dice │  │ - Winner││
-│  │ - Join      │  │ - Abilities │  │ - Successes │  │ - Degree││
-│  │ - Manage    │  │ - Modifiers │  │ - Compare   │  │ - Conseq││
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘│
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
+│  │ Session  │ │ Framing  │ │DiceRoller│ │Resolution│ │ Outcome││
+│  │          │ │          │ │          │ │          │ │        ││
+│  │ - Create │ │ - Prize  │ │ - Roll   │ │ - Success│ │ -Winner││
+│  │ - Join   │ │ - Ability│ │   D20s   │ │ - Compare│ │ -Degree││
+│  │ - Manage │ │ - Mods   │ │          │ │          │ │ -Conseq││
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └────────┘│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,16 +76,25 @@ Each module is a separate C# assembly with clear responsibilities:
 - **Doing**: Accept ability input, apply modifiers, validate ratings
 - **Deciding**: Whether framing is complete and ready for resolution
 
-#### 3. QuestWorlds.Resolution
+#### 3. QuestWorlds.DiceRoller
 
-**Role**: Dice Resolver
+**Role**: Random Number Generator
+**Responsibilities**:
+
+- **Knowing**: Valid D20 range (1-20)
+- **Doing**: Generate random dice rolls for both player and resistance
+- **Deciding**: Nothing (pure randomness)
+
+#### 4. QuestWorlds.Resolution
+
+**Role**: Success Calculator
 **Responsibilities**:
 
 - **Knowing**: Target numbers, mastery rules, success calculation rules
-- **Doing**: Roll D20, calculate successes, compare results
+- **Doing**: Calculate successes from known rolls, compare results
 - **Deciding**: Winner determination, tie-breaking
 
-#### 4. QuestWorlds.Outcome
+#### 5. QuestWorlds.Outcome
 
 **Role**: Result Interpreter
 **Responsibilities**:
@@ -112,11 +121,13 @@ QuestWorlds.sln
 │   │   └── wwwroot/               # Static assets
 │   ├── QuestWorlds.Session/       # Session management module
 │   ├── QuestWorlds.Framing/       # Contest framing module
-│   ├── QuestWorlds.Resolution/    # Dice resolution module
+│   ├── QuestWorlds.DiceRoller/    # Random dice rolling module
+│   ├── QuestWorlds.Resolution/    # Success calculation module
 │   └── QuestWorlds.Outcome/       # Outcome determination module
 └── tests/
     ├── QuestWorlds.Session.Tests/
     ├── QuestWorlds.Framing.Tests/
+    ├── QuestWorlds.DiceRoller.Tests/
     ├── QuestWorlds.Resolution.Tests/
     └── QuestWorlds.Outcome.Tests/
 ```
@@ -151,10 +162,16 @@ public interface IContestFramer
     bool IsReadyForResolution(ContestFrame frame);
 }
 
-// Resolution module
-public interface IDiceResolver
+// DiceRoller module
+public interface IDiceRoller
 {
-    ResolutionResult Resolve(ContestFrame frame);
+    DiceRolls Roll();
+}
+
+// Resolution module
+public interface IContestResolver
+{
+    ResolutionResult Resolve(ContestFrame frame, DiceRolls rolls);
 }
 
 // Outcome module
@@ -171,9 +188,10 @@ public interface IOutcomeInterpreter
 3. **GM frames contest** → Framing module captures prize, resistance TN
 4. **Player submits ability** → Framing module records ability and rating
 5. **GM applies modifiers** → Framing module adjusts target numbers
-6. **GM triggers resolution** → Resolution module rolls dice, calculates successes
-7. **System determines outcome** → Outcome module interprets results
-8. **Results broadcast** → SignalR pushes outcome to all participants
+6. **GM triggers resolution** → Web layer uses DiceRoller to generate rolls
+7. **System calculates result** → Resolution module calculates successes from known rolls
+8. **System determines outcome** → Outcome module interprets results
+9. **Results broadcast** → SignalR pushes outcome to all participants
 
 ## Consequences
 
@@ -229,10 +247,11 @@ Feature-based organization. Considered but:
 
 - Requirements: [specs/0001-questworlds-contest/requirements.md](../../specs/0001-questworlds-contest/requirements.md)
 - Related ADRs:
-  - (Planned) 0002-session-management - Details of Session module
-  - (Planned) 0003-framing-module - Details of Framing module
-  - (Planned) 0004-resolution-module - Details of Resolution module
-  - (Planned) 0005-outcome-module - Details of Outcome module
+  - [0002-session-management](0002-session-management.md) - Details of Session module
+  - [0003-framing-module](0003-framing-module.md) - Details of Framing module
+  - [0004-resolution-module](0004-resolution-module.md) - Details of Resolution module
+  - [0005-outcome-module](0005-outcome-module.md) - Details of Outcome module
+  - [0006-diceroller-module](0006-diceroller-module.md) - Details of DiceRoller module
 - External references:
   - [ASP.NET Core Razor Pages](https://docs.microsoft.com/aspnet/core/razor-pages/)
   - [SignalR documentation](https://docs.microsoft.com/aspnet/core/signalr/)

@@ -11,11 +11,13 @@
   - Create projects:
     - `src/QuestWorlds.Session/`
     - `src/QuestWorlds.Framing/`
+    - `src/QuestWorlds.DiceRoller/`
     - `src/QuestWorlds.Resolution/`
     - `src/QuestWorlds.Outcome/`
     - `src/QuestWorlds.Web/`
     - `tests/QuestWorlds.Session.Tests/`
     - `tests/QuestWorlds.Framing.Tests/`
+    - `tests/QuestWorlds.DiceRoller.Tests/`
     - `tests/QuestWorlds.Resolution.Tests/`
     - `tests/QuestWorlds.Outcome.Tests/`
   - Add project references between modules
@@ -268,20 +270,19 @@
 
 ### Contest Resolver
 
-- [ ] **TEST + IMPLEMENT: Contest resolver orchestrates full resolution**
-  - **USE COMMAND**: `/test-first when resolving contest should return complete result`
+- [ ] **TEST + IMPLEMENT: Contest resolver calculates complete result from known rolls**
+  - **USE COMMAND**: `/test-first when resolving contest with known rolls should return complete result`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
-  - Test file: `When_resolving_contest_should_return_complete_result.cs`
+  - Test file: `When_resolving_contest_with_known_rolls_should_return_complete_result.cs`
   - Test should verify:
-    - Given known dice rolls (via fake IDiceRoller)
+    - Given known DiceRolls (passed directly to Resolve)
     - ResolutionResult contains both rolls
     - ResolutionResult contains both success counts
     - ResolutionResult contains winner and degree
   - **⛔ STOP HERE - WAIT FOR USER APPROVAL in IDE before implementing**
   - Implementation should:
-    - Create `IContestResolver` public interface
+    - Create `IContestResolver` public interface with `Resolve(ContestFrame, DiceRolls)`
     - Create `ContestResolver` internal class
-    - Create `IDiceRoller` internal interface
     - Create `ResolutionResult` public record
 
 - [ ] **TEST + IMPLEMENT: Contest resolver rejects incomplete frames**
@@ -419,6 +420,23 @@
 
 ## Phase 5: Web Integration
 
+### DiceRoller Module
+
+- [ ] **TEST + IMPLEMENT: DiceRoller returns valid D20 rolls**
+  - **USE COMMAND**: `/test-first when rolling dice should return values in valid range`
+  - Test location: `tests/QuestWorlds.DiceRoller.Tests/`
+  - Test file: `When_rolling_dice_should_return_values_in_valid_range.cs`
+  - Test should verify:
+    - Roll() returns PlayerRoll between 1 and 20
+    - Roll() returns ResistanceRoll between 1 and 20
+    - Multiple calls return different values (statistical test)
+  - **⛔ STOP HERE - WAIT FOR USER APPROVAL in IDE before implementing**
+  - Implementation should:
+    - Create `IDiceRoller` public interface
+    - Create `DiceRoller` internal class using Random.Shared
+
+### DI Registration
+
 - [ ] **TEST + IMPLEMENT: DI registration for all modules**
   - **USE COMMAND**: `/test-first when registering services should resolve all interfaces`
   - Test location: `tests/QuestWorlds.Web.Tests/`
@@ -426,6 +444,7 @@
   - Test should verify:
     - ISessionCoordinator resolves
     - IContestFramer resolves
+    - IDiceRoller resolves
     - IContestResolver resolves
     - IOutcomeInterpreter resolves
   - **⛔ STOP HERE - WAIT FOR USER APPROVAL in IDE before implementing**
@@ -440,7 +459,7 @@
     - FrameContest(prize, resistanceTn)
     - SubmitAbility(abilityName, rating)
     - ApplyModifier(type, value)
-    - ResolveContest()
+    - ResolveContest() - orchestrates: IDiceRoller.Roll() → IContestResolver.Resolve(frame, rolls) → IOutcomeInterpreter.Interpret(result)
   - Wire up SignalR group management
   - Broadcast state changes to participants
 
@@ -479,10 +498,12 @@ Phase 0 (Setup)
     ↓
 Phase 1 (Framing) ──→ Phase 2 (Resolution) ──→ Phase 3 (Outcome)
                                                       ↓
-Phase 4 (Session) ────────────────────────────→ Phase 5 (Web)
+Phase 4 (Session) ────────────────────────────→ Phase 5 (Web + DiceRoller)
                                                       ↓
                                               Phase 6 (E2E)
 ```
+
+Note: The DiceRoller module is created in Phase 5 because it's only used by the web layer to orchestrate contest resolution. The Resolution module is purely deterministic and receives DiceRolls as a parameter.
 
 ## Risk Mitigation
 

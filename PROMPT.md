@@ -24,16 +24,19 @@ A web application for running QuestWorlds simple contests online between a GM an
 
 ## Architecture
 
-Four domain modules (assemblies) + web layer:
+Five domain modules (assemblies) + web layer:
 
 | Module | Public API | Responsibility |
 |--------|------------|----------------|
 | `QuestWorlds.Session` | `ISessionCoordinator`, `Session`, `Participant` | Session creation, joining, state |
 | `QuestWorlds.Framing` | `IContestFramer`, `ContestFrame`, `Rating`, `TargetNumber`, `Modifier` | Contest setup, abilities, modifiers |
-| `QuestWorlds.Resolution` | `IContestResolver`, `ResolutionResult`, `ContestWinner` | Dice rolling, success calculation |
+| `QuestWorlds.DiceRoller` | `IDiceRoller` | Random D20 generation |
+| `QuestWorlds.Resolution` | `IContestResolver`, `ResolutionResult`, `DiceRolls`, `ContestWinner` | Success calculation (purely deterministic) |
 | `QuestWorlds.Outcome` | `IOutcomeInterpreter`, `ContestOutcome`, `DegreeDescription` | Result interpretation, benefit/consequence lookup |
 
-**Key Design Principle**: Only public interfaces are tested. Implementations are internal.
+**Key Design Principles**:
+- Only public interfaces are tested. Implementations are internal.
+- Resolution module is purely deterministic - web layer uses DiceRoller to generate rolls, then passes them to Resolution.
 
 ## Key Files
 
@@ -44,8 +47,9 @@ Four domain modules (assemblies) + web layer:
 | `docs/adr/0001-user-interface-architecture.md` | Overall architecture |
 | `docs/adr/0002-session-management.md` | Session module design |
 | `docs/adr/0003-framing-module.md` | Framing module design |
-| `docs/adr/0004-resolution-module.md` | Resolution module design |
+| `docs/adr/0004-resolution-module.md` | Resolution module design (deterministic) |
 | `docs/adr/0005-outcome-module.md` | Outcome module design |
+| `docs/adr/0006-diceroller-module.md` | DiceRoller module design (randomness) |
 
 ## QuestWorlds Rules Reference
 
@@ -127,7 +131,8 @@ Working branch: `feature/questworlds-contest`
 
 **Key Design Decisions**:
 - No `InternalsVisibleTo` - test only public interfaces
-- `DiceRolls` record for deterministic testing
-- Two `Resolve` overloads: `Resolve(frame, rolls)` for tests, `Resolve(frame)` for production
+- `DiceRolls` record passed to `Resolve(frame, rolls)` - Resolution is purely deterministic
+- `IDiceRoller` in separate module - web layer orchestrates: roll dice, then resolve with known rolls
+- All tests pass known `DiceRolls` values - no mocking required
 
 **Blockers**: None
