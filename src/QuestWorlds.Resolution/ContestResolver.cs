@@ -34,6 +34,9 @@ public class ContestResolver : IContestResolver
 
     private int CalculateSuccesses(int roll, TargetNumber targetNumber)
     {
+        if (roll == targetNumber.EffectiveBase)
+            return 2; // Big success
+
         if (roll < targetNumber.EffectiveBase)
             return 1;
 
