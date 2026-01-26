@@ -83,16 +83,28 @@ Working branch: `feature/questworlds-contest`
 
 **Current Phase**: Phase 1 - Framing Module
 
-**Next Task**: Rating parses mastery notation with multiple masteries
+**Next Task**: ContestFrame requires prize and resistance
 - Run `/spec:implement` to continue TDD implementation
-- Test: `Rating.Parse("6M2")` returns Rating with Base=6, Masteries=2
+- Test: `new ContestFrame("Sneak past guards", new TargetNumber(10))` succeeds
+- Test: Empty/null prize throws ArgumentException
 
 **Completed**:
 - [x] Requirements approved
 - [x] All 5 ADRs accepted
 - [x] Tasks approved (31 tasks)
 - [x] Phase 0: Solution structure created (`QuestWorlds.slnx`)
-- [x] Rating parses simple numeric notation (`"15"` → Base=15, Masteries=0)
-- [x] Rating parses mastery notation with single mastery (`"5M"` → Base=5, Masteries=1)
+- [x] **Rating Value Object** (4 tasks)
+  - Rating parses simple numeric notation (`"15"` → Base=15, Masteries=0)
+  - Rating parses mastery notation with single mastery (`"5M"` → Base=5, Masteries=1)
+  - Rating parses mastery notation with multiple masteries (`"6M2"` → Base=6, Masteries=2)
+  - Rating rejects invalid base values (must be 1-20)
+- [x] **Modifier Value Object** (2 tasks)
+  - Modifier validates stretch must be negative
+  - Modifier validates allowed values (±5 or ±10)
+- [x] **TargetNumber Value Object** (2 tasks)
+  - TargetNumber calculates effective base with modifier (clamped 1-20)
+  - TargetNumber creates from Rating
+
+**Test Count**: 41 tests passing in `QuestWorlds.Framing.Tests`
 
 **Blockers**: None

@@ -54,7 +54,7 @@
     - Extend regex pattern to handle "M" suffix
     - Default mastery count to 1 when M present without number
 
-- [ ] **TEST + IMPLEMENT: Rating parses mastery notation with multiple masteries**
+- [x] **TEST + IMPLEMENT: Rating parses mastery notation with multiple masteries**
   - **USE COMMAND**: `/test-first when parsing rating "6M2" should create rating with base 6 and two masteries`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_parsing_rating_6M2_should_create_rating_with_base_6_and_two_masteries.cs`
@@ -66,7 +66,7 @@
   - Implementation should:
     - Extend regex pattern to handle "M{n}" suffix
 
-- [ ] **TEST + IMPLEMENT: Rating rejects invalid base values**
+- [x] **TEST + IMPLEMENT: Rating rejects invalid base values**
   - **USE COMMAND**: `/test-first when creating rating with base 0 should throw argument exception`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_creating_rating_with_invalid_base_should_throw.cs`
@@ -80,7 +80,7 @@
 
 ### Modifier Value Object
 
-- [ ] **TEST + IMPLEMENT: Modifier validates stretch must be negative**
+- [x] **TEST + IMPLEMENT: Modifier validates stretch must be negative**
   - **USE COMMAND**: `/test-first when creating stretch modifier with positive value should throw`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_creating_stretch_modifier_with_positive_value_should_throw.cs`
@@ -94,7 +94,7 @@
     - Create `ModifierType` enum
     - Validate sign based on modifier type
 
-- [ ] **TEST + IMPLEMENT: Modifier validates allowed values**
+- [x] **TEST + IMPLEMENT: Modifier validates allowed values**
   - **USE COMMAND**: `/test-first when creating modifier with invalid value should throw`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_creating_modifier_with_invalid_value_should_throw.cs`
@@ -108,7 +108,7 @@
 
 ### TargetNumber Value Object
 
-- [ ] **TEST + IMPLEMENT: TargetNumber calculates effective base with modifier**
+- [x] **TEST + IMPLEMENT: TargetNumber calculates effective base with modifier**
   - **USE COMMAND**: `/test-first when target number has modifier should calculate effective base`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_target_number_has_modifier_should_calculate_effective_base.cs`
@@ -122,7 +122,7 @@
     - Create `TargetNumber` readonly record struct
     - Implement EffectiveBase with clamping to 1-20
 
-- [ ] **TEST + IMPLEMENT: TargetNumber creates from Rating**
+- [x] **TEST + IMPLEMENT: TargetNumber creates from Rating**
   - **USE COMMAND**: `/test-first when creating target number from rating should preserve masteries`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_creating_target_number_from_rating_should_preserve_masteries.cs`
