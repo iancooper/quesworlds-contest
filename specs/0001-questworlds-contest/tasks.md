@@ -6,7 +6,7 @@
 
 ## Phase 0: Project Setup
 
-- [ ] **SETUP: Create solution structure**
+- [x] **SETUP: Create solution structure**
   - Create `QuestWorlds.sln`
   - Create projects:
     - `src/QuestWorlds.Session/`
