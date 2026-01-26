@@ -7,6 +7,8 @@ public class ContestFrame
 {
     public string Prize { get; }
     public TargetNumber Resistance { get; }
+    public string? PlayerAbilityName { get; private set; }
+    public Rating? PlayerRating { get; private set; }
 
     public ContestFrame(string prize, TargetNumber resistance)
     {
@@ -15,5 +17,14 @@ public class ContestFrame
 
         Prize = prize;
         Resistance = resistance;
+    }
+
+    public void SetPlayerAbility(string abilityName, Rating rating)
+    {
+        if (string.IsNullOrWhiteSpace(abilityName))
+            throw new ArgumentException("Ability name cannot be empty", nameof(abilityName));
+
+        PlayerAbilityName = abilityName;
+        PlayerRating = rating;
     }
 }
