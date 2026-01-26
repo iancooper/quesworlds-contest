@@ -4,7 +4,7 @@ Date: 2026-01-26
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -261,6 +261,7 @@ internal class OutcomeInterpreter : IOutcomeInterpreter
 Only the interpreter interface and outcome types are public. The lookup table is an implementation detail.
 
 **Public API** (visible to other modules):
+
 ```csharp
 public interface IOutcomeInterpreter { ... }
 public sealed record ContestOutcome { ... }
@@ -268,6 +269,7 @@ public enum DegreeDescription { ... }
 ```
 
 **Internal Implementation** (hidden from consumers):
+
 ```csharp
 internal interface IBenefitConsequenceLookup { ... }
 internal class BenefitConsequenceLookup : IBenefitConsequenceLookup { ... }
@@ -275,6 +277,7 @@ internal class OutcomeInterpreter : IOutcomeInterpreter { ... }
 ```
 
 **Dependency Injection Registration** (in module):
+
 ```csharp
 public static class ServiceCollectionExtensions
 {
@@ -288,6 +291,7 @@ public static class ServiceCollectionExtensions
 ```
 
 **Testing Strategy**:
+
 - Tests target `IOutcomeInterpreter` (public interface)
 - Create `ResolutionResult` and `ContestFrame` inputs, verify `ContestOutcome` output
 - No need for InternalsVisibleTo - all inputs and outputs are deterministic

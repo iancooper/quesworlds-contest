@@ -4,7 +4,7 @@ Date: 2026-01-26
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -325,6 +325,7 @@ internal class ContestFramer : IContestFramer
 Value objects and the aggregate are public because they're used by other modules (Resolution, Outcome). The service implementation is internal.
 
 **Public API** (visible to other modules):
+
 ```csharp
 public interface IContestFramer { ... }
 public class ContestFrame { ... }
@@ -336,11 +337,13 @@ public enum ResistanceDifficulty { ... }
 ```
 
 **Internal Implementation** (hidden from consumers):
+
 ```csharp
 internal class ContestFramer : IContestFramer { ... }
 ```
 
 **Dependency Injection Registration** (in module):
+
 ```csharp
 public static class ServiceCollectionExtensions
 {
@@ -353,6 +356,7 @@ public static class ServiceCollectionExtensions
 ```
 
 **Testing Strategy**:
+
 - Tests target `IContestFramer` (public interface)
 - Value objects (`Rating`, `TargetNumber`, `Modifier`) are tested directly since they're public and contain validation logic
 - `ContestFrame` can be tested directly for its public behavior

@@ -4,7 +4,7 @@ Date: 2026-01-26
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -241,6 +241,7 @@ public class ContestHub : Hub
 Only types needed by consumers outside the module are public. Internal types can be refactored freely.
 
 **Public API** (visible to other modules):
+
 ```csharp
 public interface ISessionCoordinator { ... }
 public class Session { ... }
@@ -250,6 +251,7 @@ public enum SessionState { ... }
 ```
 
 **Internal Implementation** (hidden from consumers):
+
 ```csharp
 internal interface ISessionIdGenerator { ... }
 internal interface ISessionRepository { ... }
@@ -259,6 +261,7 @@ internal class InMemorySessionRepository : ISessionRepository { ... }
 ```
 
 **Dependency Injection Registration** (in module):
+
 ```csharp
 public static class ServiceCollectionExtensions
 {
@@ -273,6 +276,7 @@ public static class ServiceCollectionExtensions
 ```
 
 **Testing Strategy**:
+
 - Tests target `ISessionCoordinator` (public interface) only
 - Internal collaborators (`ISessionIdGenerator`, `ISessionRepository`) are implementation details
 - Use `[assembly: InternalsVisibleTo("QuestWorlds.Session.Tests")]` only if absolutely necessary for edge case testing

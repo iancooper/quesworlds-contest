@@ -4,7 +4,7 @@ Date: 2026-01-26
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -337,6 +337,7 @@ internal class ContestResolver : IContestResolver
 Only the resolver interface and result types are public. Internal collaborators enable clean separation but are hidden from consumers.
 
 **Public API** (visible to other modules):
+
 ```csharp
 public interface IContestResolver { ... }
 public sealed record ResolutionResult { ... }
@@ -344,6 +345,7 @@ public enum ContestWinner { ... }
 ```
 
 **Internal Implementation** (hidden from consumers):
+
 ```csharp
 internal interface IDiceRoller { ... }
 internal interface ISuccessCalculator { ... }
@@ -356,6 +358,7 @@ internal class ContestResolver : IContestResolver { ... }
 ```
 
 **Dependency Injection Registration** (in module):
+
 ```csharp
 public static class ServiceCollectionExtensions
 {
