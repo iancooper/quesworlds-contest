@@ -12,15 +12,28 @@ public class ContestResolver : IContestResolver
         var playerSuccesses = CalculateSuccesses(rolls.PlayerRoll, frame.GetPlayerTargetNumber()!.Value);
         var resistanceSuccesses = CalculateSuccesses(rolls.ResistanceRoll, frame.Resistance);
 
+        var (winner, degree) = DetermineWinner(playerSuccesses, resistanceSuccesses);
+
         return new ResolutionResult
         {
             PlayerRoll = rolls.PlayerRoll,
             ResistanceRoll = rolls.ResistanceRoll,
             PlayerSuccesses = playerSuccesses,
             ResistanceSuccesses = resistanceSuccesses,
-            Winner = ContestWinner.Player,
-            Degree = 0
+            Winner = winner,
+            Degree = degree
         };
+    }
+
+    private (ContestWinner Winner, int Degree) DetermineWinner(int playerSuccesses, int resistanceSuccesses)
+    {
+        if (playerSuccesses > resistanceSuccesses)
+            return (ContestWinner.Player, playerSuccesses - resistanceSuccesses);
+
+        if (resistanceSuccesses > playerSuccesses)
+            return (ContestWinner.Resistance, resistanceSuccesses - playerSuccesses);
+
+        return (ContestWinner.Tie, 0);
     }
 
     public ResolutionResult Resolve(ContestFrame frame)
