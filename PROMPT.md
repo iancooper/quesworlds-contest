@@ -81,30 +81,36 @@ Working branch: `feature/questworlds-contest`
 
 <!-- Update this section manually when resuming work -->
 
-**Current Phase**: Phase 1 - Framing Module
+**Current Phase**: Phase 2 - Resolution Module
 
-**Next Task**: ContestFrame requires prize and resistance
+**Next Task**: Success calculator returns 1 success when roll below TN
 - Run `/spec:implement` to continue TDD implementation
-- Test: `new ContestFrame("Sneak past guards", new TargetNumber(10))` succeeds
-- Test: Empty/null prize throws ArgumentException
+- Test: Roll 5 vs TN 10 = 1 success
+- Test: Roll 1 vs TN 10 = 1 success
 
 **Completed**:
 - [x] Requirements approved
 - [x] All 5 ADRs accepted
 - [x] Tasks approved (31 tasks)
 - [x] Phase 0: Solution structure created (`QuestWorlds.slnx`)
-- [x] **Rating Value Object** (4 tasks)
-  - Rating parses simple numeric notation (`"15"` → Base=15, Masteries=0)
-  - Rating parses mastery notation with single mastery (`"5M"` → Base=5, Masteries=1)
-  - Rating parses mastery notation with multiple masteries (`"6M2"` → Base=6, Masteries=2)
-  - Rating rejects invalid base values (must be 1-20)
-- [x] **Modifier Value Object** (2 tasks)
-  - Modifier validates stretch must be negative
-  - Modifier validates allowed values (±5 or ±10)
-- [x] **TargetNumber Value Object** (2 tasks)
-  - TargetNumber calculates effective base with modifier (clamped 1-20)
-  - TargetNumber creates from Rating
+- [x] **Phase 1: Framing Module** (12 tasks)
+  - **Rating Value Object** (4 tasks)
+    - Rating parses simple numeric notation (`"15"` → Base=15, Masteries=0)
+    - Rating parses mastery notation with single mastery (`"5M"` → Base=5, Masteries=1)
+    - Rating parses mastery notation with multiple masteries (`"6M2"` → Base=6, Masteries=2)
+    - Rating rejects invalid base values (must be 1-20)
+  - **Modifier Value Object** (2 tasks)
+    - Modifier validates stretch must be negative
+    - Modifier validates allowed values (±5 or ±10)
+  - **TargetNumber Value Object** (2 tasks)
+    - TargetNumber calculates effective base with modifier (clamped 1-20)
+    - TargetNumber creates from Rating
+  - **ContestFrame Aggregate** (4 tasks)
+    - ContestFrame requires prize and resistance
+    - ContestFrame tracks player ability
+    - ContestFrame calculates player target number with modifiers
+    - ContestFrame knows when ready for resolution
 
-**Test Count**: 41 tests passing in `QuestWorlds.Framing.Tests`
+**Test Count**: 65 tests passing in `QuestWorlds.Framing.Tests`
 
 **Blockers**: None
