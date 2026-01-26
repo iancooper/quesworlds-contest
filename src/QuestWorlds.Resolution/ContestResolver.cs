@@ -12,7 +12,7 @@ public class ContestResolver : IContestResolver
         var playerSuccesses = CalculateSuccesses(rolls.PlayerRoll, frame.GetPlayerTargetNumber()!.Value);
         var resistanceSuccesses = CalculateSuccesses(rolls.ResistanceRoll, frame.Resistance);
 
-        var (winner, degree) = DetermineWinner(playerSuccesses, resistanceSuccesses);
+        var (winner, degree) = DetermineWinner(playerSuccesses, resistanceSuccesses, rolls);
 
         return new ResolutionResult
         {
@@ -25,13 +25,20 @@ public class ContestResolver : IContestResolver
         };
     }
 
-    private (ContestWinner Winner, int Degree) DetermineWinner(int playerSuccesses, int resistanceSuccesses)
+    private (ContestWinner Winner, int Degree) DetermineWinner(int playerSuccesses, int resistanceSuccesses, DiceRolls rolls)
     {
         if (playerSuccesses > resistanceSuccesses)
             return (ContestWinner.Player, playerSuccesses - resistanceSuccesses);
 
         if (resistanceSuccesses > playerSuccesses)
             return (ContestWinner.Resistance, resistanceSuccesses - playerSuccesses);
+
+        // Tied successes - use higher roll as tiebreaker
+        if (rolls.PlayerRoll > rolls.ResistanceRoll)
+            return (ContestWinner.Player, 0);
+
+        if (rolls.ResistanceRoll > rolls.PlayerRoll)
+            return (ContestWinner.Resistance, 0);
 
         return (ContestWinner.Tie, 0);
     }
