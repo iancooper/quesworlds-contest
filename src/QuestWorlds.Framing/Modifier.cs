@@ -11,6 +11,9 @@ public readonly record struct Modifier
 
     public Modifier(ModifierType type, int value)
     {
+        if (value != -10 && value != -5 && value != 5 && value != 10)
+            throw new ArgumentOutOfRangeException(nameof(value), value, "Modifier must be ±5 or ±10");
+
         Type = type;
 
         Value = type switch
