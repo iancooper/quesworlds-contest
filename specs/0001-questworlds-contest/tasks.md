@@ -135,7 +135,7 @@
 
 ### ContestFrame Aggregate
 
-- [ ] **TEST + IMPLEMENT: ContestFrame requires prize and resistance**
+- [x] **TEST + IMPLEMENT: ContestFrame requires prize and resistance**
   - **USE COMMAND**: `/test-first when creating contest frame should require prize and resistance`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_creating_contest_frame_should_require_prize_and_resistance.cs`
@@ -148,7 +148,7 @@
     - Create `ContestFrame` class
     - Add constructor validation
 
-- [ ] **TEST + IMPLEMENT: ContestFrame tracks player ability**
+- [x] **TEST + IMPLEMENT: ContestFrame tracks player ability**
   - **USE COMMAND**: `/test-first when setting player ability should update frame`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_setting_player_ability_should_update_frame.cs`
@@ -160,7 +160,7 @@
     - Add `SetPlayerAbility` method
     - Add `PlayerAbilityName` and `PlayerRating` properties
 
-- [ ] **TEST + IMPLEMENT: ContestFrame calculates player target number with modifiers**
+- [x] **TEST + IMPLEMENT: ContestFrame calculates player target number with modifiers**
   - **USE COMMAND**: `/test-first when getting player target number should include all modifiers`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_getting_player_target_number_should_include_all_modifiers.cs`
@@ -173,7 +173,7 @@
     - Add `ApplyModifier` method
     - Add `GetPlayerTargetNumber` method that sums modifiers
 
-- [ ] **TEST + IMPLEMENT: ContestFrame knows when ready for resolution**
+- [x] **TEST + IMPLEMENT: ContestFrame knows when ready for resolution**
   - **USE COMMAND**: `/test-first when frame is complete should be ready for resolution`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_frame_is_complete_should_be_ready_for_resolution.cs`
