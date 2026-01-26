@@ -105,15 +105,6 @@ GM can apply the following modifiers to the player's TN:
 - If successes are tied, the higher roll wins
 - The degree of victory/defeat = difference between success totals
 
-**Degree of Victory/Defeat:**
-
-| Degree | Description      |
-|--------|------------------|
-| 0      | Marginal         |
-| 1      | Minor            |
-| 2      | Major            |
-| 3      | Complete         |
-
 ### Benefits and Consequences
 
 Based on the degree of victory or defeat, the GM may assign benefits (bonuses) or consequences (penalties) that affect future contests:

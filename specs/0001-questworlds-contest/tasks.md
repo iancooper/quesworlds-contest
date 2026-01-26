@@ -27,7 +27,7 @@
 
 ### Rating Value Object
 
-- [ ] **TEST + IMPLEMENT: Rating parses simple numeric notation**
+- [x] **TEST + IMPLEMENT: Rating parses simple numeric notation**
   - **USE COMMAND**: `/test-first when parsing rating "15" should create rating with base 15 and no masteries`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_parsing_rating_15_should_create_rating_with_base_15_and_no_masteries.cs`
@@ -41,7 +41,7 @@
     - Implement `Parse(string notation)` static method
     - Use regex to parse numeric notation
 
-- [ ] **TEST + IMPLEMENT: Rating parses mastery notation with single mastery**
+- [x] **TEST + IMPLEMENT: Rating parses mastery notation with single mastery**
   - **USE COMMAND**: `/test-first when parsing rating "5M" should create rating with base 5 and one mastery`
   - Test location: `tests/QuestWorlds.Framing.Tests/`
   - Test file: `When_parsing_rating_5M_should_create_rating_with_base_5_and_one_mastery.cs`
