@@ -15,6 +15,9 @@ public readonly record struct Rating
 
     public Rating(int baseValue, int masteries = 0)
     {
+        if (baseValue < 1 || baseValue > 20)
+            throw new ArgumentOutOfRangeException(nameof(baseValue), baseValue, "Base must be between 1 and 20");
+
         Base = baseValue;
         Masteries = masteries;
     }
