@@ -5,10 +5,13 @@ namespace QuestWorlds.Framing;
 /// </summary>
 public class ContestFrame
 {
+    private readonly List<Modifier> _modifiers = new();
+
     public string Prize { get; }
     public TargetNumber Resistance { get; }
     public string? PlayerAbilityName { get; private set; }
     public Rating? PlayerRating { get; private set; }
+    public IReadOnlyList<Modifier> Modifiers => _modifiers.AsReadOnly();
 
     public ContestFrame(string prize, TargetNumber resistance)
     {
@@ -26,5 +29,21 @@ public class ContestFrame
 
         PlayerAbilityName = abilityName;
         PlayerRating = rating;
+    }
+
+    public void ApplyModifier(Modifier modifier)
+    {
+        _modifiers.Add(modifier);
+    }
+
+    /// <summary>
+    /// Calculate the player's effective target number after all modifiers.
+    /// </summary>
+    public TargetNumber? GetPlayerTargetNumber()
+    {
+        if (PlayerRating is null) return null;
+
+        var totalModifier = _modifiers.Sum(m => m.Value);
+        return TargetNumber.FromRating(PlayerRating.Value, totalModifier);
     }
 }
