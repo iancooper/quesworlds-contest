@@ -18,6 +18,12 @@ public readonly record struct TargetNumber
     }
 
     /// <summary>
+    /// Creates a TargetNumber from a Rating, optionally applying a modifier.
+    /// </summary>
+    public static TargetNumber FromRating(Rating rating, int modifier = 0) =>
+        new(rating.Base, rating.Masteries, modifier);
+
+    /// <summary>
     /// The effective base for dice comparison (after applying modifier, clamped to 1-20).
     /// </summary>
     public int EffectiveBase => Math.Clamp(Base + Modifier, 1, 20);
