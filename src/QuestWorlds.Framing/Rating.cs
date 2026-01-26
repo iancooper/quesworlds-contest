@@ -8,7 +8,7 @@ namespace QuestWorlds.Framing;
 /// </summary>
 public readonly record struct Rating
 {
-    private static readonly Regex NotationPattern = new(@"^(\d+)(M)?$", RegexOptions.IgnoreCase);
+    private static readonly Regex NotationPattern = new(@"^(\d+)(M(\d+)?)?$", RegexOptions.IgnoreCase);
 
     public int Base { get; }
     public int Masteries { get; }
@@ -26,12 +26,15 @@ public readonly record struct Rating
             throw new FormatException($"Invalid rating notation: {notation}");
 
         var baseValue = int.Parse(match.Groups[1].Value);
-        var masteries = match.Groups[2].Success ? 1 : 0;
+        var masteries = match.Groups[2].Success
+            ? (match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 1)
+            : 0;
 
         return new Rating(baseValue, masteries);
     }
 
     public override string ToString() =>
         Masteries == 0 ? Base.ToString() :
-        $"{Base}M";
+        Masteries == 1 ? $"{Base}M" :
+        $"{Base}M{Masteries}";
 }
