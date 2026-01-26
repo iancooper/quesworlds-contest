@@ -190,7 +190,7 @@
 
 ### Success Calculator
 
-- [ ] **TEST + IMPLEMENT: Success calculator returns 1 success when roll below TN**
+- [x] **TEST + IMPLEMENT: Success calculator returns 1 success when roll below TN**
   - **USE COMMAND**: `/test-first when roll is below target number should return one success`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_roll_is_below_target_number_should_return_one_success.cs`
@@ -204,7 +204,7 @@
     - Create `SuccessCalculator` internal class
     - Create `RollResult` internal record
 
-- [ ] **TEST + IMPLEMENT: Success calculator returns 2 successes when roll equals TN (big success)**
+- [x] **TEST + IMPLEMENT: Success calculator returns 2 successes when roll equals TN (big success)**
   - **USE COMMAND**: `/test-first when roll equals target number should return two successes`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_roll_equals_target_number_should_return_two_successes.cs`
@@ -216,7 +216,7 @@
     - Add big success check in Calculate method
     - Set IsBigSuccess flag
 
-- [ ] **TEST + IMPLEMENT: Success calculator returns 0 successes when roll above TN**
+- [x] **TEST + IMPLEMENT: Success calculator returns 0 successes when roll above TN**
   - **USE COMMAND**: `/test-first when roll is above target number should return zero successes`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_roll_is_above_target_number_should_return_zero_successes.cs`
@@ -227,7 +227,7 @@
   - Implementation should:
     - Add failure case in Calculate method
 
-- [ ] **TEST + IMPLEMENT: Success calculator adds mastery successes**
+- [x] **TEST + IMPLEMENT: Success calculator adds mastery successes**
   - **USE COMMAND**: `/test-first when target number has masteries should add to success total`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_target_number_has_masteries_should_add_to_success_total.cs`
