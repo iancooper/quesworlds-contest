@@ -46,4 +46,12 @@ public class ContestFrame
         var totalModifier = _modifiers.Sum(m => m.Value);
         return TargetNumber.FromRating(PlayerRating.Value, totalModifier);
     }
+
+    /// <summary>
+    /// Check if all required information is present for resolution.
+    /// </summary>
+    public bool IsReadyForResolution =>
+        !string.IsNullOrEmpty(Prize) &&
+        PlayerAbilityName is not null &&
+        PlayerRating is not null;
 }
