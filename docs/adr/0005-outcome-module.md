@@ -162,21 +162,24 @@ namespace QuestWorlds.Outcome;
 
 /// <summary>
 /// Looks up benefit/consequence modifiers from the QuestWorlds table.
+/// Internal - implementation detail.
 /// </summary>
-public interface IBenefitConsequenceLookup
+internal interface IBenefitConsequenceLookup
 {
     int GetModifier(int degree, bool isVictory);
 }
 
 /// <summary>
 /// Interprets resolution results into displayable outcomes.
+/// Public - the main entry point for consumers.
 /// </summary>
 public interface IOutcomeInterpreter
 {
     ContestOutcome Interpret(ResolutionResult result, ContestFrame frame);
 }
 
-public class BenefitConsequenceLookup : IBenefitConsequenceLookup
+// Internal - implementation detail
+internal class BenefitConsequenceLookup : IBenefitConsequenceLookup
 {
     // QuestWorlds benefit/consequence table
     // Victory: +5, +10, +15, +20 for degrees 0, 1, 2, 3+
@@ -195,7 +198,8 @@ public class BenefitConsequenceLookup : IBenefitConsequenceLookup
     }
 }
 
-public class OutcomeInterpreter : IOutcomeInterpreter
+// Internal - implementation detail
+internal class OutcomeInterpreter : IOutcomeInterpreter
 {
     private readonly IBenefitConsequenceLookup _lookup;
 
@@ -251,6 +255,42 @@ public class OutcomeInterpreter : IOutcomeInterpreter
         $"{tn.Base}M{tn.Masteries}";
 }
 ```
+
+### Access Modifiers and Encapsulation
+
+Only the interpreter interface and outcome types are public. The lookup table is an implementation detail.
+
+**Public API** (visible to other modules):
+```csharp
+public interface IOutcomeInterpreter { ... }
+public sealed record ContestOutcome { ... }
+public enum DegreeDescription { ... }
+```
+
+**Internal Implementation** (hidden from consumers):
+```csharp
+internal interface IBenefitConsequenceLookup { ... }
+internal class BenefitConsequenceLookup : IBenefitConsequenceLookup { ... }
+internal class OutcomeInterpreter : IOutcomeInterpreter { ... }
+```
+
+**Dependency Injection Registration** (in module):
+```csharp
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddOutcomeModule(this IServiceCollection services)
+    {
+        services.AddSingleton<IBenefitConsequenceLookup, BenefitConsequenceLookup>();
+        services.AddSingleton<IOutcomeInterpreter, OutcomeInterpreter>();
+        return services;
+    }
+}
+```
+
+**Testing Strategy**:
+- Tests target `IOutcomeInterpreter` (public interface)
+- Create `ResolutionResult` and `ContestFrame` inputs, verify `ContestOutcome` output
+- No need for InternalsVisibleTo - all inputs and outputs are deterministic
 
 ### Usage Example
 

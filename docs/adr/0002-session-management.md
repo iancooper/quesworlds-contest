@@ -157,12 +157,14 @@ public class Session
 ```csharp
 namespace QuestWorlds.Session;
 
-public interface ISessionIdGenerator
+// Internal - implementation detail for ID generation
+internal interface ISessionIdGenerator
 {
     string Generate();
 }
 
-public interface ISessionRepository
+// Internal - implementation detail for storage
+internal interface ISessionRepository
 {
     void Add(Session session);
     Session? Get(string sessionId);
@@ -170,6 +172,7 @@ public interface ISessionRepository
     void Remove(string sessionId);
 }
 
+// Public - the main entry point for consumers
 public interface ISessionCoordinator
 {
     Session CreateSession(string gmName, string connectionId);
@@ -184,7 +187,8 @@ public interface ISessionCoordinator
 Session IDs will be 6-character alphanumeric codes (uppercase letters and digits, excluding ambiguous characters like 0/O, 1/I/L):
 
 ```csharp
-public class SessionIdGenerator : ISessionIdGenerator
+// Internal - implementation detail
+internal class SessionIdGenerator : ISessionIdGenerator
 {
     private const string Alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     private const int IdLength = 6;
@@ -231,6 +235,47 @@ public class ContestHub : Hub
     }
 }
 ```
+
+### Access Modifiers and Encapsulation
+
+Only types needed by consumers outside the module are public. Internal types can be refactored freely.
+
+**Public API** (visible to other modules):
+```csharp
+public interface ISessionCoordinator { ... }
+public class Session { ... }
+public record Participant { ... }
+public enum ParticipantRole { ... }
+public enum SessionState { ... }
+```
+
+**Internal Implementation** (hidden from consumers):
+```csharp
+internal interface ISessionIdGenerator { ... }
+internal interface ISessionRepository { ... }
+internal class SessionIdGenerator : ISessionIdGenerator { ... }
+internal class SessionCoordinator : ISessionCoordinator { ... }
+internal class InMemorySessionRepository : ISessionRepository { ... }
+```
+
+**Dependency Injection Registration** (in module):
+```csharp
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddSessionModule(this IServiceCollection services)
+    {
+        services.AddSingleton<ISessionIdGenerator, SessionIdGenerator>();
+        services.AddSingleton<ISessionRepository, InMemorySessionRepository>();
+        services.AddSingleton<ISessionCoordinator, SessionCoordinator>();
+        return services;
+    }
+}
+```
+
+**Testing Strategy**:
+- Tests target `ISessionCoordinator` (public interface) only
+- Internal collaborators (`ISessionIdGenerator`, `ISessionRepository`) are implementation details
+- Use `[assembly: InternalsVisibleTo("QuestWorlds.Session.Tests")]` only if absolutely necessary for edge case testing
 
 ### Implementation Approach
 

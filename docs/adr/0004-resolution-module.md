@@ -44,7 +44,7 @@ We will implement the Resolution module with a clear separation between dice rol
 │  Input: ContestFrame (from Framing module)                      │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │           IDiceResolver (Role: Dice Resolver)            │   │
+│  │           IContestResolver (Role: Dice Resolver)            │   │
 │  │  - Resolve(ContestFrame) → ResolutionResult              │   │
 │  └─────────────────────────┬───────────────────────────────┘   │
 │                            │                                    │
@@ -70,7 +70,7 @@ We will implement the Resolution module with a clear separation between dice rol
 
 #### Roles and Responsibilities
 
-**IDiceResolver** (Role: Dice Resolver - Orchestrator)
+**IContestResolver** (Role: Contest Resolver - Orchestrator)
 
 - **Knowing**: Nothing (stateless)
 - **Doing**: Coordinate rolling, success calculation, and winner determination
@@ -105,6 +105,7 @@ We will implement the Resolution module with a clear separation between dice rol
 ```csharp
 namespace QuestWorlds.Resolution;
 
+// Public - used by Outcome module
 public enum ContestWinner
 {
     Player,
@@ -114,6 +115,7 @@ public enum ContestWinner
 
 /// <summary>
 /// Immutable result of contest resolution.
+/// Public - returned to consumers.
 /// </summary>
 public sealed record ResolutionResult
 {
@@ -137,8 +139,9 @@ public sealed record ResolutionResult
 
 /// <summary>
 /// Intermediate result of a single die roll evaluation.
+/// Internal - only used within the module.
 /// </summary>
-public readonly record struct RollResult(
+internal readonly record struct RollResult(
     int Roll,
     int TargetNumber,
     int Masteries,
@@ -154,25 +157,28 @@ public readonly record struct RollResult(
 namespace QuestWorlds.Resolution;
 
 /// <summary>
-/// Provides random D20 rolls. Injectable for testing.
+/// Provides random D20 rolls. Injectable for testing via InternalsVisibleTo.
+/// Internal - implementation detail.
 /// </summary>
-public interface IDiceRoller
+internal interface IDiceRoller
 {
     int RollD20();
 }
 
 /// <summary>
 /// Calculates successes from a roll and target number.
+/// Internal - implementation detail.
 /// </summary>
-public interface ISuccessCalculator
+internal interface ISuccessCalculator
 {
     RollResult Calculate(int roll, TargetNumber targetNumber);
 }
 
 /// <summary>
 /// Determines the winner and degree of victory.
+/// Internal - implementation detail.
 /// </summary>
-public interface IWinnerDecider
+internal interface IWinnerDecider
 {
     (ContestWinner Winner, int Degree) Decide(
         int playerSuccesses, int playerRoll,
@@ -181,8 +187,9 @@ public interface IWinnerDecider
 
 /// <summary>
 /// Resolves a contest by rolling dice and determining the outcome.
+/// Public - the main entry point for consumers.
 /// </summary>
-public interface IDiceResolver
+public interface IContestResolver
 {
     ResolutionResult Resolve(ContestFrame frame);
 }
@@ -193,14 +200,16 @@ public interface IDiceResolver
 ```csharp
 namespace QuestWorlds.Resolution;
 
-public class DiceRoller : IDiceRoller
+// Internal - implementation detail
+internal class DiceRoller : IDiceRoller
 {
     private readonly Random _random = Random.Shared;
 
     public int RollD20() => _random.Next(1, 21);
 }
 
-public class SuccessCalculator : ISuccessCalculator
+// Internal - implementation detail
+internal class SuccessCalculator : ISuccessCalculator
 {
     public RollResult Calculate(int roll, TargetNumber targetNumber)
     {
@@ -238,7 +247,8 @@ public class SuccessCalculator : ISuccessCalculator
     }
 }
 
-public class WinnerDecider : IWinnerDecider
+// Internal - implementation detail
+internal class WinnerDecider : IWinnerDecider
 {
     public (ContestWinner Winner, int Degree) Decide(
         int playerSuccesses, int playerRoll,
@@ -267,13 +277,14 @@ public class WinnerDecider : IWinnerDecider
     }
 }
 
-public class DiceResolver : IDiceResolver
+// Internal - implementation detail
+internal class ContestResolver : IContestResolver
 {
     private readonly IDiceRoller _diceRoller;
     private readonly ISuccessCalculator _successCalculator;
     private readonly IWinnerDecider _winnerDecider;
 
-    public DiceResolver(
+    public ContestResolver(
         IDiceRoller diceRoller,
         ISuccessCalculator successCalculator,
         IWinnerDecider winnerDecider)
@@ -321,34 +332,75 @@ public class DiceResolver : IDiceResolver
 }
 ```
 
+### Access Modifiers and Encapsulation
+
+Only the resolver interface and result types are public. Internal collaborators enable clean separation but are hidden from consumers.
+
+**Public API** (visible to other modules):
+```csharp
+public interface IContestResolver { ... }
+public sealed record ResolutionResult { ... }
+public enum ContestWinner { ... }
+```
+
+**Internal Implementation** (hidden from consumers):
+```csharp
+internal interface IDiceRoller { ... }
+internal interface ISuccessCalculator { ... }
+internal interface IWinnerDecider { ... }
+internal readonly record struct RollResult { ... }
+internal class DiceRoller : IDiceRoller { ... }
+internal class SuccessCalculator : ISuccessCalculator { ... }
+internal class WinnerDecider : IWinnerDecider { ... }
+internal class ContestResolver : IContestResolver { ... }
+```
+
+**Dependency Injection Registration** (in module):
+```csharp
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddResolutionModule(this IServiceCollection services)
+    {
+        services.AddSingleton<IDiceRoller, DiceRoller>();
+        services.AddSingleton<ISuccessCalculator, SuccessCalculator>();
+        services.AddSingleton<IWinnerDecider, WinnerDecider>();
+        services.AddSingleton<IContestResolver, ContestResolver>();
+        return services;
+    }
+}
+```
+
 ### Testing Strategy
 
-The separation of concerns enables focused testing:
+Tests target `IContestResolver` (public interface). Since dice rolling is non-deterministic, we use `[assembly: InternalsVisibleTo("QuestWorlds.Resolution.Tests")]` to allow injecting a fake dice roller for deterministic testing:
 
 ```csharp
-// Test success calculation with known inputs
-[Theory]
-[InlineData(5, 10, 0, 1)]   // Roll 5 vs TN 10 = 1 success
-[InlineData(10, 10, 0, 2)]  // Roll 10 vs TN 10 = 2 successes (big)
-[InlineData(15, 10, 0, 0)]  // Roll 15 vs TN 10 = 0 successes
-[InlineData(5, 10, 1, 2)]   // Roll 5 vs TN 10 + 1M = 2 successes
-[InlineData(5, 10, 2, 3)]   // Roll 5 vs TN 10 + 2M = 3 successes
-public void SuccessCalculator_CalculatesCorrectly(
-    int roll, int tn, int masteries, int expected)
-{
-    var calc = new SuccessCalculator();
-    var result = calc.Calculate(roll, new TargetNumber(tn, masteries));
-    Assert.Equal(expected, result.TotalSuccesses);
-}
-
-// Test with fake dice roller for deterministic results
-public class FakeDiceRoller : IDiceRoller
+// In test project (has InternalsVisibleTo access)
+internal class FakeDiceRoller : IDiceRoller
 {
     private readonly Queue<int> _rolls;
     public FakeDiceRoller(params int[] rolls) => _rolls = new Queue<int>(rolls);
     public int RollD20() => _rolls.Dequeue();
 }
+
+[Fact]
+public void Resolve_WithKnownRolls_ReturnsExpectedOutcome()
+{
+    var resolver = new ContestResolver(
+        new FakeDiceRoller(5, 12),  // Player rolls 5, Resistance rolls 12
+        new SuccessCalculator(),
+        new WinnerDecider());
+
+    var frame = new ContestFrame("Test prize", new TargetNumber(10));
+    frame.SetPlayerAbility("Swordfighting", new Rating(15));
+
+    var result = resolver.Resolve(frame);
+
+    Assert.Equal(ContestWinner.Player, result.Winner);
+}
 ```
+
+This is the one exception where we expose internals to tests - random number generation cannot be tested through the public interface alone.
 
 ## Consequences
 

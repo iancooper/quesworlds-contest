@@ -294,6 +294,7 @@ public class ContestFrame
 ```csharp
 namespace QuestWorlds.Framing;
 
+// Public - the main entry point for consumers
 public interface IContestFramer
 {
     ContestFrame FrameContest(string prize, TargetNumber resistance);
@@ -302,7 +303,8 @@ public interface IContestFramer
     bool IsReadyForResolution(ContestFrame frame);
 }
 
-public class ContestFramer : IContestFramer
+// Internal - implementation detail
+internal class ContestFramer : IContestFramer
 {
     public ContestFrame FrameContest(string prize, TargetNumber resistance) =>
         new ContestFrame(prize, resistance);
@@ -317,6 +319,43 @@ public class ContestFramer : IContestFramer
         frame.IsReadyForResolution;
 }
 ```
+
+### Access Modifiers and Encapsulation
+
+Value objects and the aggregate are public because they're used by other modules (Resolution, Outcome). The service implementation is internal.
+
+**Public API** (visible to other modules):
+```csharp
+public interface IContestFramer { ... }
+public class ContestFrame { ... }
+public readonly record struct Rating { ... }
+public readonly record struct TargetNumber { ... }
+public readonly record struct Modifier { ... }
+public enum ModifierType { ... }
+public enum ResistanceDifficulty { ... }
+```
+
+**Internal Implementation** (hidden from consumers):
+```csharp
+internal class ContestFramer : IContestFramer { ... }
+```
+
+**Dependency Injection Registration** (in module):
+```csharp
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddFramingModule(this IServiceCollection services)
+    {
+        services.AddTransient<IContestFramer, ContestFramer>();
+        return services;
+    }
+}
+```
+
+**Testing Strategy**:
+- Tests target `IContestFramer` (public interface)
+- Value objects (`Rating`, `TargetNumber`, `Modifier`) are tested directly since they're public and contain validation logic
+- `ContestFrame` can be tested directly for its public behavior
 
 ### Implementation Approach
 
