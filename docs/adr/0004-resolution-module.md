@@ -70,29 +70,17 @@ We will implement the Resolution module with a clear separation between dice rol
 
 #### Roles and Responsibilities
 
-**IContestResolver** (Role: Contest Resolver - Orchestrator)
+**IContestResolver** (Role: Contest Resolver)
 
-- **Knowing**: Nothing (stateless)
-- **Doing**: Coordinate rolling, success calculation, and winner determination
-- **Deciding**: Nothing (delegates to collaborators)
-
-**IDiceRoller** (Role: Randomness Provider)
-
-- **Knowing**: Nothing
-- **Doing**: Generate random D20 rolls (1-20)
-- **Deciding**: Nothing
-
-**ISuccessCalculator** (Role: Success Calculator)
-
-- **Knowing**: QuestWorlds success rules
-- **Doing**: Calculate successes from roll and target number
-- **Deciding**: Nothing (pure calculation)
-
-**IWinnerDecider** (Role: Winner Decider)
-
-- **Knowing**: Comparison and tie-breaking rules
-- **Doing**: Compare successes, apply tie-breaker
+- **Knowing**: QuestWorlds success rules, comparison and tie-breaking rules
+- **Doing**: Calculate successes from rolls, determine winner, generate random rolls
 - **Deciding**: Who wins and by how much
+
+**DiceRolls** (Value Object)
+
+- **Knowing**: Player roll and resistance roll values
+- **Doing**: Nothing
+- **Deciding**: Nothing
 
 **ResolutionResult** (Value Object)
 
@@ -100,12 +88,21 @@ We will implement the Resolution module with a clear separation between dice rol
 - **Doing**: Nothing
 - **Deciding**: Nothing
 
+Note: Internal helper methods or classes for success calculation and winner determination may emerge through refactoring as the implementation grows.
+
 ### Domain Model
 
 ```csharp
 namespace QuestWorlds.Resolution;
 
-// Public - used by Outcome module
+/// <summary>
+/// Represents a pair of D20 dice rolls for a contest.
+/// </summary>
+public readonly record struct DiceRolls(int PlayerRoll, int ResistanceRoll);
+
+/// <summary>
+/// The winner of a contest.
+/// </summary>
 public enum ContestWinner
 {
     Player,
@@ -115,7 +112,6 @@ public enum ContestWinner
 
 /// <summary>
 /// Immutable result of contest resolution.
-/// Public - returned to consumers.
 /// </summary>
 public sealed record ResolutionResult
 {
@@ -125,30 +121,7 @@ public sealed record ResolutionResult
     public int ResistanceSuccesses { get; init; }
     public ContestWinner Winner { get; init; }
     public int Degree { get; init; }
-
-    /// <summary>
-    /// True if the player achieved a "big success" (roll == TN).
-    /// </summary>
-    public bool PlayerBigSuccess { get; init; }
-
-    /// <summary>
-    /// True if the resistance achieved a "big success" (roll == TN).
-    /// </summary>
-    public bool ResistanceBigSuccess { get; init; }
 }
-
-/// <summary>
-/// Intermediate result of a single die roll evaluation.
-/// Internal - only used within the module.
-/// </summary>
-internal readonly record struct RollResult(
-    int Roll,
-    int TargetNumber,
-    int Masteries,
-    int BaseSuccesses,
-    int TotalSuccesses,
-    bool IsBigSuccess
-);
 ```
 
 ### Interfaces
@@ -157,177 +130,99 @@ internal readonly record struct RollResult(
 namespace QuestWorlds.Resolution;
 
 /// <summary>
-/// Provides random D20 rolls. Injectable for testing via InternalsVisibleTo.
-/// Internal - implementation detail.
-/// </summary>
-internal interface IDiceRoller
-{
-    int RollD20();
-}
-
-/// <summary>
-/// Calculates successes from a roll and target number.
-/// Internal - implementation detail.
-/// </summary>
-internal interface ISuccessCalculator
-{
-    RollResult Calculate(int roll, TargetNumber targetNumber);
-}
-
-/// <summary>
-/// Determines the winner and degree of victory.
-/// Internal - implementation detail.
-/// </summary>
-internal interface IWinnerDecider
-{
-    (ContestWinner Winner, int Degree) Decide(
-        int playerSuccesses, int playerRoll,
-        int resistanceSuccesses, int resistanceRoll);
-}
-
-/// <summary>
-/// Resolves a contest by rolling dice and determining the outcome.
-/// Public - the main entry point for consumers.
+/// Resolves a contest by determining the outcome from dice rolls.
 /// </summary>
 public interface IContestResolver
 {
+    /// <summary>
+    /// Resolves a contest with the given dice rolls. Deterministic and testable.
+    /// </summary>
+    ResolutionResult Resolve(ContestFrame frame, DiceRolls rolls);
+
+    /// <summary>
+    /// Resolves a contest by rolling dice internally. Convenience method for production use.
+    /// </summary>
     ResolutionResult Resolve(ContestFrame frame);
 }
 ```
 
 ### Implementations
 
+The implementation starts simple. Internal helper classes may emerge through refactoring as complexity grows.
+
 ```csharp
 namespace QuestWorlds.Resolution;
 
-// Internal - implementation detail
-internal class DiceRoller : IDiceRoller
+public class ContestResolver : IContestResolver
 {
-    private readonly Random _random = Random.Shared;
-
-    public int RollD20() => _random.Next(1, 21);
-}
-
-// Internal - implementation detail
-internal class SuccessCalculator : ISuccessCalculator
-{
-    public RollResult Calculate(int roll, TargetNumber targetNumber)
+    /// <summary>
+    /// Resolves a contest with known dice rolls. Deterministic and testable.
+    /// </summary>
+    public ResolutionResult Resolve(ContestFrame frame, DiceRolls rolls)
     {
-        var effectiveBase = targetNumber.EffectiveBase;
+        if (!frame.IsReadyForResolution)
+            throw new InvalidOperationException("Contest frame is not ready for resolution");
 
-        // Determine base successes from the roll
-        int baseSuccesses;
-        bool isBigSuccess = false;
+        // Calculate successes for each side
+        var playerSuccesses = CalculateSuccesses(rolls.PlayerRoll, frame.GetPlayerTargetNumber()!.Value);
+        var resistanceSuccesses = CalculateSuccesses(rolls.ResistanceRoll, frame.Resistance);
 
-        if (roll == effectiveBase)
+        // Determine winner
+        var (winner, degree) = DecideWinner(
+            playerSuccesses, rolls.PlayerRoll,
+            resistanceSuccesses, rolls.ResistanceRoll);
+
+        return new ResolutionResult
         {
-            baseSuccesses = 2; // Big success
-            isBigSuccess = true;
-        }
-        else if (roll < effectiveBase)
-        {
-            baseSuccesses = 1; // Success
-        }
-        else
-        {
-            baseSuccesses = 0; // Failure
-        }
-
-        // Add mastery successes
-        var totalSuccesses = baseSuccesses + targetNumber.Masteries;
-
-        return new RollResult(
-            Roll: roll,
-            TargetNumber: effectiveBase,
-            Masteries: targetNumber.Masteries,
-            BaseSuccesses: baseSuccesses,
-            TotalSuccesses: totalSuccesses,
-            IsBigSuccess: isBigSuccess
-        );
+            PlayerRoll = rolls.PlayerRoll,
+            ResistanceRoll = rolls.ResistanceRoll,
+            PlayerSuccesses = playerSuccesses,
+            ResistanceSuccesses = resistanceSuccesses,
+            Winner = winner,
+            Degree = degree
+        };
     }
-}
 
-// Internal - implementation detail
-internal class WinnerDecider : IWinnerDecider
-{
-    public (ContestWinner Winner, int Degree) Decide(
+    /// <summary>
+    /// Resolves a contest by rolling dice internally.
+    /// </summary>
+    public ResolutionResult Resolve(ContestFrame frame)
+    {
+        var rolls = new DiceRolls(
+            PlayerRoll: Random.Shared.Next(1, 21),
+            ResistanceRoll: Random.Shared.Next(1, 21));
+
+        return Resolve(frame, rolls);
+    }
+
+    private int CalculateSuccesses(int roll, TargetNumber targetNumber)
+    {
+        // Base successes from the roll
+        int baseSuccesses = roll == targetNumber.EffectiveBase ? 2  // Big success
+                          : roll < targetNumber.EffectiveBase ? 1   // Success
+                          : 0;                                       // Failure
+
+        return baseSuccesses + targetNumber.Masteries;
+    }
+
+    private (ContestWinner Winner, int Degree) DecideWinner(
         int playerSuccesses, int playerRoll,
         int resistanceSuccesses, int resistanceRoll)
     {
         var difference = playerSuccesses - resistanceSuccesses;
 
         if (difference > 0)
-        {
             return (ContestWinner.Player, difference);
-        }
-        else if (difference < 0)
-        {
+        if (difference < 0)
             return (ContestWinner.Resistance, Math.Abs(difference));
-        }
-        else
-        {
-            // Tie-breaker: higher roll wins with 0 degree
-            if (playerRoll > resistanceRoll)
-                return (ContestWinner.Player, 0);
-            else if (resistanceRoll > playerRoll)
-                return (ContestWinner.Resistance, 0);
-            else
-                return (ContestWinner.Tie, 0);
-        }
-    }
-}
 
-// Internal - implementation detail
-internal class ContestResolver : IContestResolver
-{
-    private readonly IDiceRoller _diceRoller;
-    private readonly ISuccessCalculator _successCalculator;
-    private readonly IWinnerDecider _winnerDecider;
+        // Tie-breaker: higher roll wins with 0 degree
+        if (playerRoll > resistanceRoll)
+            return (ContestWinner.Player, 0);
+        if (resistanceRoll > playerRoll)
+            return (ContestWinner.Resistance, 0);
 
-    public ContestResolver(
-        IDiceRoller diceRoller,
-        ISuccessCalculator successCalculator,
-        IWinnerDecider winnerDecider)
-    {
-        _diceRoller = diceRoller;
-        _successCalculator = successCalculator;
-        _winnerDecider = winnerDecider;
-    }
-
-    public ResolutionResult Resolve(ContestFrame frame)
-    {
-        if (!frame.IsReadyForResolution)
-            throw new InvalidOperationException("Contest frame is not ready for resolution");
-
-        // Roll dice
-        var playerRoll = _diceRoller.RollD20();
-        var resistanceRoll = _diceRoller.RollD20();
-
-        // Calculate successes
-        var playerResult = _successCalculator.Calculate(
-            playerRoll,
-            frame.GetPlayerTargetNumber()!.Value);
-
-        var resistanceResult = _successCalculator.Calculate(
-            resistanceRoll,
-            frame.Resistance);
-
-        // Determine winner
-        var (winner, degree) = _winnerDecider.Decide(
-            playerResult.TotalSuccesses, playerRoll,
-            resistanceResult.TotalSuccesses, resistanceRoll);
-
-        return new ResolutionResult
-        {
-            PlayerRoll = playerRoll,
-            ResistanceRoll = resistanceRoll,
-            PlayerSuccesses = playerResult.TotalSuccesses,
-            ResistanceSuccesses = resistanceResult.TotalSuccesses,
-            PlayerBigSuccess = playerResult.IsBigSuccess,
-            ResistanceBigSuccess = resistanceResult.IsBigSuccess,
-            Winner = winner,
-            Degree = degree
-        };
+        return (ContestWinner.Tie, 0);
     }
 }
 ```
@@ -340,21 +235,17 @@ Only the resolver interface and result types are public. Internal collaborators 
 
 ```csharp
 public interface IContestResolver { ... }
+public readonly record struct DiceRolls { ... }
 public sealed record ResolutionResult { ... }
 public enum ContestWinner { ... }
 ```
 
-**Internal Implementation** (hidden from consumers):
+**Internal Implementation** (hidden from consumers, emerge through refactoring):
 
 ```csharp
-internal interface IDiceRoller { ... }
-internal interface ISuccessCalculator { ... }
-internal interface IWinnerDecider { ... }
-internal readonly record struct RollResult { ... }
-internal class DiceRoller : IDiceRoller { ... }
-internal class SuccessCalculator : ISuccessCalculator { ... }
-internal class WinnerDecider : IWinnerDecider { ... }
-internal class ContestResolver : IContestResolver { ... }
+// Dice rolling is handled internally - no need for public IDiceRoller
+// Success calculation and winner determination logic starts in ContestResolver
+// and may be extracted to internal helper classes through refactoring
 ```
 
 **Dependency Injection Registration** (in module):
@@ -364,9 +255,6 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddResolutionModule(this IServiceCollection services)
     {
-        services.AddSingleton<IDiceRoller, DiceRoller>();
-        services.AddSingleton<ISuccessCalculator, SuccessCalculator>();
-        services.AddSingleton<IWinnerDecider, WinnerDecider>();
         services.AddSingleton<IContestResolver, ContestResolver>();
         return services;
     }
@@ -375,50 +263,37 @@ public static class ServiceCollectionExtensions
 
 ### Testing Strategy
 
-Tests target `IContestResolver` (public interface). Since dice rolling is non-deterministic, we use `[assembly: InternalsVisibleTo("QuestWorlds.Resolution.Tests")]` to allow injecting a fake dice roller for deterministic testing:
+Tests target `IContestResolver` (public interface). The resolver exposes a deterministic overload that accepts `DiceRolls`, making tests simple and predictable:
 
 ```csharp
-// In test project (has InternalsVisibleTo access)
-internal class FakeDiceRoller : IDiceRoller
-{
-    private readonly Queue<int> _rolls;
-    public FakeDiceRoller(params int[] rolls) => _rolls = new Queue<int>(rolls);
-    public int RollD20() => _rolls.Dequeue();
-}
-
 [Fact]
 public void Resolve_WithKnownRolls_ReturnsExpectedOutcome()
 {
-    var resolver = new ContestResolver(
-        new FakeDiceRoller(5, 12),  // Player rolls 5, Resistance rolls 12
-        new SuccessCalculator(),
-        new WinnerDecider());
-
+    var resolver = new ContestResolver();
     var frame = new ContestFrame("Test prize", new TargetNumber(10));
     frame.SetPlayerAbility("Swordfighting", new Rating(15));
 
-    var result = resolver.Resolve(frame);
+    // Player rolls 5 (below TN 15 = success), Resistance rolls 12 (above TN 10 = fail)
+    var result = resolver.Resolve(frame, new DiceRolls(5, 12));
 
     Assert.Equal(ContestWinner.Player, result.Winner);
 }
 ```
 
-This is the one exception where we expose internals to tests - random number generation cannot be tested through the public interface alone.
+**Important**: We do NOT use `InternalsVisibleTo`. Internal classes should emerge through refactoring as the implementation grows, not be test-driven directly. Tests always go through the public `IContestResolver` interface with the deterministic `Resolve(frame, rolls)` overload.
 
 ## Consequences
 
 ### Positive
 
-- **Testable**: IDiceRoller injection allows deterministic testing
-- **Single Responsibility**: Each component has one job
+- **Testable**: Deterministic overload `Resolve(frame, rolls)` allows predictable testing
+- **Simple**: Single class implementation, internal helpers emerge through refactoring
 - **Immutable Results**: ResolutionResult cannot be accidentally modified
-- **Clear Contract**: Well-defined input (ContestFrame) and output (ResolutionResult)
+- **Clear Contract**: Well-defined input (ContestFrame, DiceRolls) and output (ResolutionResult)
 
 ### Negative
 
-- **Multiple Small Classes**: More files to maintain
-- **Indirection**: Orchestrator delegates to multiple collaborators
-- **Dependency Injection**: Requires wiring up dependencies
+- **Two Overloads**: Must maintain both deterministic and random versions (minimal overhead)
 
 ### Risks and Mitigations
 
@@ -430,21 +305,21 @@ This is the one exception where we expose internals to tests - random number gen
 
 ## Alternatives Considered
 
-### 1. Single Monolithic Resolver
+### 1. Injectable IDiceRoller Interface
 
-All logic in one class. Rejected because:
+Make `IDiceRoller` public and inject it for testing. Rejected because:
 
-- Harder to test (would need to mock Random)
-- Less clear separation of concerns
-- Violates single responsibility principle
+- Dice rolling is an implementation detail, not a public concern
+- Adds unnecessary complexity to the public API
+- The deterministic overload provides simpler testability
 
-### 2. Static Methods for Calculation
+### 2. InternalsVisibleTo for Testing
 
-Use static utility methods instead of interfaces. Rejected because:
+Expose internals to test project. Rejected because:
 
-- Still need interface for dice rolling (testability)
-- Consistency: all roles as interfaces
-- Easier to extend/modify later
+- Tests should only target public interfaces
+- Internal classes should emerge from refactoring, not be test-driven
+- Couples tests to implementation details
 
 ### 3. Return Tuple Instead of ResolutionResult
 

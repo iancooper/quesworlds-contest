@@ -10,8 +10,5 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="QuestWorlds.Resolution.Tests" />
-  </ItemGroup>
 
 </Project>
