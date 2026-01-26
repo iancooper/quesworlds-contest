@@ -34,12 +34,15 @@ public class ContestResolver : IContestResolver
 
     private int CalculateSuccesses(int roll, TargetNumber targetNumber)
     {
+        int baseSuccesses;
+
         if (roll == targetNumber.EffectiveBase)
-            return 2; // Big success
+            baseSuccesses = 2; // Big success
+        else if (roll < targetNumber.EffectiveBase)
+            baseSuccesses = 1;
+        else
+            baseSuccesses = 0;
 
-        if (roll < targetNumber.EffectiveBase)
-            return 1;
-
-        return 0;
+        return baseSuccesses + targetNumber.Masteries;
     }
 }
