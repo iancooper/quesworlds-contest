@@ -11,8 +11,5 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="QuestWorlds.Outcome.Tests" />
-  </ItemGroup>
 
 </Project>

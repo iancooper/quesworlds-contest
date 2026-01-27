@@ -6,8 +6,5 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="QuestWorlds.Session.Tests" />
-  </ItemGroup>
 
 </Project>
