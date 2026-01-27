@@ -21,7 +21,27 @@ public class OutcomeInterpreter : IOutcomeInterpreter
 
         return new ContestOutcome
         {
+            // Context
+            Prize = frame.Prize,
+            PlayerAbilityName = frame.PlayerAbilityName!,
+            PlayerRating = frame.PlayerRating!.Value.ToString(),
+            ResistanceTargetNumber = FormatTargetNumber(frame.Resistance),
+
+            // Resolution
+            PlayerRoll = result.PlayerRoll,
+            ResistanceRoll = result.ResistanceRoll,
+            PlayerSuccesses = result.PlayerSuccesses,
+            ResistanceSuccesses = result.ResistanceSuccesses,
+
+            // Outcome
+            Winner = result.Winner,
+            Degree = result.Degree,
             BenefitConsequenceModifier = modifier
         };
     }
+
+    private static string FormatTargetNumber(TargetNumber tn) =>
+        tn.Masteries == 0 ? tn.Base.ToString() :
+        tn.Masteries == 1 ? $"{tn.Base}M" :
+        $"{tn.Base}M{tn.Masteries}";
 }
