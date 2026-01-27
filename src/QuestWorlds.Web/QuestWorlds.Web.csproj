@@ -5,6 +5,7 @@
     <ProjectReference Include="..\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
     <ProjectReference Include="..\QuestWorlds.Resolution\QuestWorlds.Resolution.csproj" />
     <ProjectReference Include="..\QuestWorlds.Outcome\QuestWorlds.Outcome.csproj" />
+    <ProjectReference Include="..\QuestWorlds.DiceRoller\QuestWorlds.DiceRoller.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

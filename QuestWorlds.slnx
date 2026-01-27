@@ -13,5 +13,6 @@
     <Project Path="tests/QuestWorlds.Outcome.Tests/QuestWorlds.Outcome.Tests.csproj" />
     <Project Path="tests/QuestWorlds.Resolution.Tests/QuestWorlds.Resolution.Tests.csproj" />
     <Project Path="tests/QuestWorlds.Session.Tests/QuestWorlds.Session.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.Web.Tests/QuestWorlds.Web.Tests.csproj" />
   </Folder>
 </Solution>
