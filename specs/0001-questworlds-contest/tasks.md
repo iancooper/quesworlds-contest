@@ -270,7 +270,7 @@
 
 ### Contest Resolver
 
-- [ ] **TEST + IMPLEMENT: Contest resolver calculates complete result from known rolls**
+- [x] **TEST + IMPLEMENT: Contest resolver calculates complete result from known rolls**
   - **USE COMMAND**: `/test-first when resolving contest with known rolls should return complete result`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_resolving_contest_with_known_rolls_should_return_complete_result.cs`
@@ -285,7 +285,7 @@
     - Create `ContestResolver` internal class
     - Create `ResolutionResult` public record
 
-- [ ] **TEST + IMPLEMENT: Contest resolver rejects incomplete frames**
+- [x] **TEST + IMPLEMENT: Contest resolver rejects incomplete frames**
   - **USE COMMAND**: `/test-first when frame is not ready should throw`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_frame_is_not_ready_should_throw.cs`

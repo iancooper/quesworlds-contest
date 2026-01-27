@@ -85,12 +85,11 @@ Working branch: `feature/questworlds-contest`
 
 <!-- Update this section manually when resuming work -->
 
-**Current Phase**: Phase 2 - Resolution Module
+**Current Phase**: Phase 3 - Outcome Module
 
-**Next Task**: Contest resolver calculates complete result from known rolls
+**Next Task**: Outcome interpreter maps degree to description
 - Run `/spec:implement` to continue TDD implementation
-- Test: Given known DiceRolls, ResolutionResult contains rolls, successes, winner, and degree
-- Test: Resolving frame without player ability throws InvalidOperationException
+- Test: Degree 0 → Marginal, Degree 1 → Minor, Degree 2 → Major, Degree 3+ → Complete
 
 **Completed**:
 - [x] Requirements approved
@@ -114,7 +113,7 @@ Working branch: `feature/questworlds-contest`
     - ContestFrame tracks player ability
     - ContestFrame calculates player target number with modifiers
     - ContestFrame knows when ready for resolution
-- [ ] **Phase 2: Resolution Module** (8 tasks, 6 complete)
+- [x] **Phase 2: Resolution Module** (8 tasks) ✅
   - **Success Calculator** (4 tasks) ✅
     - Returns 1 success when roll below TN
     - Returns 2 successes when roll equals TN (big success)
@@ -123,11 +122,11 @@ Working branch: `feature/questworlds-contest`
   - **Winner Decider** (2 tasks) ✅
     - Determines winner by success count
     - Breaks ties with higher roll
-  - **Contest Resolver** (2 tasks)
+  - **Contest Resolver** (2 tasks) ✅
     - Orchestrates full resolution
     - Rejects incomplete frames
 
-**Test Count**: 79 tests passing (65 Framing + 14 Resolution)
+**Test Count**: 80 tests passing (65 Framing + 15 Resolution)
 
 **Key Design Decisions**:
 - No `InternalsVisibleTo` - test only public interfaces
