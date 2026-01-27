@@ -1,0 +1,267 @@
+@page
+@model QuestWorlds.Web.Pages.Player.ContestModel
+@{
+    ViewData["Title"] = "Player - Contest";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Session Header -->
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Session: <span id="sessionIdDisplay" class="font-monospace"></span></h5>
+                    <span id="sessionState" class="badge bg-light text-dark">Connecting...</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Playing as:</strong> <span id="playerNameDisplay"></span></p>
+                </div>
+            </div>
+
+            <!-- Waiting for Contest Section -->
+            <div id="waitingSection" class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Waiting for GM</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="spinner-border text-secondary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Waiting for the GM to frame a contest...</p>
+                </div>
+            </div>
+
+            <!-- Submit Ability Section -->
+            <div id="submitAbilitySection" class="card mb-3 d-none">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Submit Your Ability</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Prize:</strong> <span id="contestPrize"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="abilityName" class="form-label">Ability Name</label>
+                        <input type="text" class="form-control" id="abilityName" placeholder="e.g., Stealth, Combat, Charm">
+                    </div>
+                    <div class="mb-3">
+                        <label for="abilityRating" class="form-label">Ability Rating</label>
+                        <input type="text" class="form-control" id="abilityRating" placeholder="e.g., 15 or 5M or 6M2">
+                        <div class="form-text">Use notation: 15 (simple), 5M (mastery), 6M2 (two masteries)</div>
+                    </div>
+                    <button id="submitAbilityBtn" class="btn btn-info w-100">Submit Ability</button>
+                </div>
+            </div>
+
+            <!-- Waiting for Resolution Section -->
+            <div id="waitingResolutionSection" class="card mb-3 d-none">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Waiting for Resolution</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Your Ability:</strong> <span id="submittedAbility"></span> (<span id="submittedRating"></span>)</p>
+                    <div class="alert alert-warning">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        GM is applying modifiers and will resolve the contest...
+                    </div>
+                    <div id="modifiersApplied" class="mt-3 d-none">
+                        <strong>Modifiers Applied:</strong>
+                        <ul id="modifiersList" class="list-group mt-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outcome Section -->
+            <div id="outcomeSection" class="card mb-3 d-none">
+                <div class="card-header" id="outcomeHeader">
+                    <h5 class="mb-0">Contest Outcome</h5>
+                </div>
+                <div class="card-body">
+                    <div id="outcomeSummary" class="alert"></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Your Roll:</strong> <span id="playerRoll"></span></p>
+                            <p><strong>Your Successes:</strong> <span id="playerSuccesses"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Resistance Roll:</strong> <span id="resistanceRoll"></span></p>
+                            <p><strong>Resistance Successes:</strong> <span id="resistanceSuccesses"></span></p>
+                        </div>
+                    </div>
+                    <hr>
+                    <p><strong>Modifier:</strong> <span id="outcomeModifier"></span></p>
+                    <div class="alert alert-secondary mt-3">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Waiting for GM to start new contest...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="errorMessage" class="alert alert-danger d-none"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('sessionId');
+        const playerName = urlParams.get('playerName');
+
+        if (!sessionId || !playerName) {
+            window.location.href = '/Player/Join';
+        }
+
+        document.getElementById("sessionIdDisplay").textContent = sessionId;
+        document.getElementById("playerNameDisplay").textContent = playerName;
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/contestHub")
+            .withAutomaticReconnect()
+            .build();
+
+        const appliedModifiers = [];
+
+        // State management
+        function updateState(state) {
+            const stateBadge = document.getElementById("sessionState");
+            const stateNames = {
+                0: "Waiting for Players",
+                1: "Framing Contest",
+                2: "Awaiting Your Ability",
+                3: "Resolving Contest",
+                4: "Showing Outcome"
+            };
+            stateBadge.textContent = stateNames[state] || state;
+        }
+
+        function showSection(sectionId) {
+            ["waitingSection", "submitAbilitySection", "waitingResolutionSection", "outcomeSection"]
+                .forEach(function(id) {
+                    document.getElementById(id).classList.add("d-none");
+                });
+            document.getElementById(sectionId).classList.remove("d-none");
+        }
+
+        function updateModifiersList() {
+            const container = document.getElementById("modifiersApplied");
+            const list = document.getElementById("modifiersList");
+
+            // Clear existing items safely
+            while (list.firstChild) {
+                list.removeChild(list.firstChild);
+            }
+
+            if (appliedModifiers.length > 0) {
+                container.classList.remove("d-none");
+                appliedModifiers.forEach(function(m) {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item";
+                    li.textContent = m.type + ": " + (m.value > 0 ? "+" : "") + m.value;
+                    list.appendChild(li);
+                });
+            } else {
+                container.classList.add("d-none");
+            }
+        }
+
+        // SignalR event handlers
+        connection.on("SessionStateChanged", function (state) {
+            updateState(state);
+            if (state === 1) { // Framing Contest
+                showSection("waitingSection");
+            }
+        });
+
+        connection.on("ContestFramed", function (prize, resistanceTn) {
+            document.getElementById("contestPrize").textContent = prize;
+            showSection("submitAbilitySection");
+            appliedModifiers.length = 0;
+            updateModifiersList();
+        });
+
+        connection.on("AbilitySubmitted", function (abilityName, rating) {
+            document.getElementById("submittedAbility").textContent = abilityName;
+            document.getElementById("submittedRating").textContent = rating;
+            showSection("waitingResolutionSection");
+        });
+
+        connection.on("ModifierApplied", function (type, value) {
+            appliedModifiers.push({ type: type, value: value });
+            updateModifiersList();
+        });
+
+        connection.on("ContestResolved", function (outcome) {
+            const outcomeHeader = document.getElementById("outcomeHeader");
+            const outcomeSummary = document.getElementById("outcomeSummary");
+
+            if (outcome.winner === 0) { // Player wins
+                outcomeHeader.className = "card-header bg-success text-white";
+                outcomeSummary.className = "alert alert-success";
+            } else if (outcome.winner === 1) { // Resistance wins
+                outcomeHeader.className = "card-header bg-danger text-white";
+                outcomeSummary.className = "alert alert-danger";
+            } else {
+                outcomeHeader.className = "card-header bg-secondary text-white";
+                outcomeSummary.className = "alert alert-secondary";
+            }
+
+            outcomeSummary.textContent = outcome.summary;
+            document.getElementById("playerRoll").textContent = outcome.playerRoll;
+            document.getElementById("playerSuccesses").textContent = outcome.playerSuccesses;
+            document.getElementById("resistanceRoll").textContent = outcome.resistanceRoll;
+            document.getElementById("resistanceSuccesses").textContent = outcome.resistanceSuccesses;
+
+            const modifier = outcome.benefitConsequenceModifier;
+            document.getElementById("outcomeModifier").textContent =
+                (modifier > 0 ? "+" : "") + modifier + " (Benefit/Consequence)";
+
+            showSection("outcomeSection");
+            appliedModifiers.length = 0;
+        });
+
+        connection.on("Error", function (message) {
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = message;
+            errorDiv.classList.remove("d-none");
+            setTimeout(function() { errorDiv.classList.add("d-none"); }, 5000);
+        });
+
+        // Button handlers
+        document.getElementById("submitAbilityBtn").addEventListener("click", async function () {
+            const abilityName = document.getElementById("abilityName").value.trim();
+            const rating = document.getElementById("abilityRating").value.trim();
+
+            if (!abilityName || !rating) {
+                alert("Please enter both ability name and rating");
+                return;
+            }
+
+            try {
+                await connection.invoke("SubmitAbility", sessionId, abilityName, rating);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // Connect and join session
+        connection.start().then(async function () {
+            try {
+                await connection.invoke("JoinSession", sessionId, playerName);
+            } catch (err) {
+                console.error(err);
+            }
+        }).catch(function (err) {
+            console.error(err);
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = "Failed to connect to server: " + err.message;
+            errorDiv.classList.remove("d-none");
+        });
+    </script>
+}

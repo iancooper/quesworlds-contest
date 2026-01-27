@@ -447,12 +447,12 @@
   - Wire up SignalR group management
   - Broadcast state changes to participants
 
-- [ ] **IMPLEMENT: GM Razor Pages**
+- [x] **IMPLEMENT: GM Razor Pages**
   - Create `/GM/Index` - Session creation page
   - Create `/GM/Contest` - Contest framing and resolution page
   - Add Bootstrap styling for responsive layout
 
-- [ ] **IMPLEMENT: Player Razor Pages**
+- [x] **IMPLEMENT: Player Razor Pages**
   - Create `/Player/Join` - Session join page
   - Create `/Player/Contest` - Ability submission and results page
   - Add Bootstrap styling for mobile-friendly layout

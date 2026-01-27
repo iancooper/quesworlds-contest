@@ -85,11 +85,10 @@ Working branch: `feature/questworlds-contest`
 
 <!-- Update this section manually when resuming work -->
 
-**Current Phase**: Phase 5 - Web Integration (in progress)
+**Current Phase**: Phase 5 - Web Integration (complete)
 
-**Next Task**: GM Razor Pages
-- Create `/GM/Index` - Session creation page
-- Create `/GM/Contest` - Contest framing and resolution page
+**Next Task**: Phase 6 - End-to-End Testing
+- Complete contest workflow integration tests
 - Run `/spec:implement` to continue implementation
 
 **Completed**:
@@ -135,12 +134,12 @@ Working branch: `feature/questworlds-contest`
   - Session coordinator allows players to join
   - Session coordinator rejects invalid session ID
   - Session tracks state transitions (WaitingForPlayers → FramingContest → AwaitingPlayerAbility → ResolvingContest → ShowingOutcome)
-- [x] **Phase 5: Web Integration** (in progress)
+- [x] **Phase 5: Web Integration** ✅
   - [x] DiceRoller returns valid D20 rolls (`IDiceRoller`, `DiceRollerModule.CreateRoller()`)
   - [x] DI registration for all modules (`ServiceCollectionExtensions` in each module)
   - [x] SignalR ContestHub (CreateSession, JoinSession, FrameContest, SubmitAbility, ApplyModifier, ResolveContest)
-  - [ ] GM Razor Pages (`/GM/Index`, `/GM/Contest`)
-  - [ ] Player Razor Pages (`/Player/Join`, `/Player/Contest`)
+  - [x] GM Razor Pages (`/GM/Index`, `/GM/Contest`)
+  - [x] Player Razor Pages (`/Player/Join`, `/Player/Contest`)
 
 **Test Count**: 127 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session + 3 DiceRoller + 4 Web)
 

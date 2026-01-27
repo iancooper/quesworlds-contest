@@ -1,0 +1,312 @@
+@page
+@model QuestWorlds.Web.Pages.GM.ContestModel
+@{
+    ViewData["Title"] = "GM - Contest";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Session Header -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Session: <span id="sessionIdDisplay" class="font-monospace"></span></h5>
+                    <span id="sessionState" class="badge bg-light text-dark">Connecting...</span>
+                </div>
+                <div class="card-body">
+                    <div id="playersList">
+                        <strong>Players:</strong> <span id="players">None yet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Frame Contest Section -->
+            <div id="frameContestSection" class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Frame Contest</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="prize" class="form-label">Prize (what's at stake)</label>
+                        <input type="text" class="form-control" id="prize" placeholder="e.g., Sneak past the guards">
+                    </div>
+                    <div class="mb-3">
+                        <label for="resistanceTn" class="form-label">Resistance Rating</label>
+                        <input type="text" class="form-control" id="resistanceTn" placeholder="e.g., 14 or 5M">
+                        <div class="form-text">Use notation: 15 (simple), 5M (mastery), 6M2 (two masteries)</div>
+                    </div>
+                    <button id="frameContestBtn" class="btn btn-primary">Frame Contest</button>
+                </div>
+            </div>
+
+            <!-- Awaiting Player Section -->
+            <div id="awaitingPlayerSection" class="card mb-3 d-none">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Awaiting Player</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Prize:</strong> <span id="contestPrize"></span></p>
+                    <p><strong>Resistance:</strong> <span id="contestResistance"></span></p>
+                    <div class="alert alert-info">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Waiting for player to submit their ability...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apply Modifiers Section -->
+            <div id="modifiersSection" class="card mb-3 d-none">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Apply Modifiers</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Player Ability:</strong> <span id="playerAbility"></span> (<span id="playerRating"></span>)</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Modifiers Applied:</label>
+                        <ul id="appliedModifiers" class="list-group mb-2">
+                            <li class="list-group-item text-muted">None</li>
+                        </ul>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <select id="modifierType" class="form-select">
+                                <option value="Stretch">Stretch (must be negative)</option>
+                                <option value="Situational">Situational</option>
+                                <option value="Augment">Augment</option>
+                                <option value="Hindrance">Hindrance</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="modifierValue" class="form-select">
+                                <option value="-10">-10</option>
+                                <option value="-5">-5</option>
+                                <option value="5">+5</option>
+                                <option value="10">+10</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button id="applyModifierBtn" class="btn btn-outline-primary w-100">Add</button>
+                        </div>
+                    </div>
+
+                    <button id="resolveContestBtn" class="btn btn-success w-100">Resolve Contest</button>
+                </div>
+            </div>
+
+            <!-- Outcome Section -->
+            <div id="outcomeSection" class="card mb-3 d-none">
+                <div class="card-header" id="outcomeHeader">
+                    <h5 class="mb-0">Contest Outcome</h5>
+                </div>
+                <div class="card-body">
+                    <div id="outcomeSummary" class="alert"></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Player Roll:</strong> <span id="playerRoll"></span></p>
+                            <p><strong>Player Successes:</strong> <span id="playerSuccesses"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Resistance Roll:</strong> <span id="resistanceRoll"></span></p>
+                            <p><strong>Resistance Successes:</strong> <span id="resistanceSuccesses"></span></p>
+                        </div>
+                    </div>
+                    <hr>
+                    <p><strong>Modifier:</strong> <span id="outcomeModifier"></span></p>
+                    <button id="newContestBtn" class="btn btn-primary w-100 mt-2">Start New Contest</button>
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="errorMessage" class="alert alert-danger d-none"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('sessionId');
+
+        if (!sessionId) {
+            window.location.href = '/GM/Index';
+        }
+
+        document.getElementById("sessionIdDisplay").textContent = sessionId;
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/contestHub")
+            .withAutomaticReconnect()
+            .build();
+
+        const players = [];
+        const appliedModifiers = [];
+
+        // State management
+        function updateState(state) {
+            const stateBadge = document.getElementById("sessionState");
+            const stateNames = {
+                0: "Waiting for Players",
+                1: "Framing Contest",
+                2: "Awaiting Player Ability",
+                3: "Resolving Contest",
+                4: "Showing Outcome"
+            };
+            stateBadge.textContent = stateNames[state] || state;
+        }
+
+        function showSection(sectionId) {
+            ["frameContestSection", "awaitingPlayerSection", "modifiersSection", "outcomeSection"]
+                .forEach(id => {
+                    document.getElementById(id).classList.add("d-none");
+                });
+            document.getElementById(sectionId).classList.remove("d-none");
+        }
+
+        function updateModifiersList() {
+            const list = document.getElementById("appliedModifiers");
+            // Clear existing items safely
+            while (list.firstChild) {
+                list.removeChild(list.firstChild);
+            }
+
+            if (appliedModifiers.length === 0) {
+                const li = document.createElement("li");
+                li.className = "list-group-item text-muted";
+                li.textContent = "None";
+                list.appendChild(li);
+            } else {
+                appliedModifiers.forEach(function(m) {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item";
+                    li.textContent = m.type + ": " + (m.value > 0 ? "+" : "") + m.value;
+                    list.appendChild(li);
+                });
+            }
+        }
+
+        // SignalR event handlers
+        connection.on("PlayerJoined", function (playerName) {
+            players.push(playerName);
+            document.getElementById("players").textContent = players.join(", ");
+        });
+
+        connection.on("SessionStateChanged", function (state) {
+            updateState(state);
+        });
+
+        connection.on("ContestFramed", function (prize, resistanceTn) {
+            document.getElementById("contestPrize").textContent = prize;
+            document.getElementById("contestResistance").textContent = resistanceTn;
+            showSection("awaitingPlayerSection");
+        });
+
+        connection.on("AbilitySubmitted", function (abilityName, rating) {
+            document.getElementById("playerAbility").textContent = abilityName;
+            document.getElementById("playerRating").textContent = rating;
+            showSection("modifiersSection");
+        });
+
+        connection.on("ModifierApplied", function (type, value) {
+            appliedModifiers.push({ type: type, value: value });
+            updateModifiersList();
+        });
+
+        connection.on("ContestResolved", function (outcome) {
+            const outcomeHeader = document.getElementById("outcomeHeader");
+            const outcomeSummary = document.getElementById("outcomeSummary");
+
+            if (outcome.winner === 0) { // Player wins
+                outcomeHeader.className = "card-header bg-success text-white";
+                outcomeSummary.className = "alert alert-success";
+            } else if (outcome.winner === 1) { // Resistance wins
+                outcomeHeader.className = "card-header bg-danger text-white";
+                outcomeSummary.className = "alert alert-danger";
+            } else {
+                outcomeHeader.className = "card-header bg-secondary text-white";
+                outcomeSummary.className = "alert alert-secondary";
+            }
+
+            outcomeSummary.textContent = outcome.summary;
+            document.getElementById("playerRoll").textContent = outcome.playerRoll;
+            document.getElementById("playerSuccesses").textContent = outcome.playerSuccesses;
+            document.getElementById("resistanceRoll").textContent = outcome.resistanceRoll;
+            document.getElementById("resistanceSuccesses").textContent = outcome.resistanceSuccesses;
+
+            const modifier = outcome.benefitConsequenceModifier;
+            document.getElementById("outcomeModifier").textContent =
+                (modifier > 0 ? "+" : "") + modifier + " (Benefit/Consequence)";
+
+            showSection("outcomeSection");
+            appliedModifiers.length = 0;
+        });
+
+        connection.on("Error", function (message) {
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = message;
+            errorDiv.classList.remove("d-none");
+            setTimeout(function() { errorDiv.classList.add("d-none"); }, 5000);
+        });
+
+        // Button handlers
+        document.getElementById("frameContestBtn").addEventListener("click", async function () {
+            const prize = document.getElementById("prize").value.trim();
+            const resistanceTn = document.getElementById("resistanceTn").value.trim();
+
+            if (!prize || !resistanceTn) {
+                alert("Please enter both prize and resistance");
+                return;
+            }
+
+            try {
+                await connection.invoke("FrameContest", sessionId, prize, resistanceTn);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        document.getElementById("applyModifierBtn").addEventListener("click", async function () {
+            const type = document.getElementById("modifierType").value;
+            const value = parseInt(document.getElementById("modifierValue").value);
+
+            try {
+                await connection.invoke("ApplyModifier", sessionId, type, value);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        document.getElementById("resolveContestBtn").addEventListener("click", async function () {
+            try {
+                await connection.invoke("ResolveContest", sessionId);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        document.getElementById("newContestBtn").addEventListener("click", async function () {
+            try {
+                await connection.invoke("StartNewContest", sessionId);
+                showSection("frameContestSection");
+                document.getElementById("prize").value = "";
+                document.getElementById("resistanceTn").value = "";
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // Connect and join session
+        connection.start().then(function () {
+            updateState(1); // Framing Contest
+        }).catch(function (err) {
+            console.error(err);
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = "Failed to connect to server: " + err.message;
+            errorDiv.classList.remove("d-none");
+        });
+    </script>
+}

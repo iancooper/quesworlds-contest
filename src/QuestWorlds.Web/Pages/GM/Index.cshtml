@@ -1,0 +1,87 @@
+@page
+@model QuestWorlds.Web.Pages.GM.IndexModel
+@{
+    ViewData["Title"] = "GM - Create Session";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Create Game Session</h4>
+                </div>
+                <div class="card-body">
+                    <div id="createSessionForm">
+                        <div class="mb-3">
+                            <label for="gmName" class="form-label">Your Name (GM)</label>
+                            <input type="text" class="form-control" id="gmName" placeholder="Enter your name" required>
+                        </div>
+                        <button id="createSessionBtn" class="btn btn-primary w-100">Create Session</button>
+                    </div>
+
+                    <div id="sessionCreated" class="d-none">
+                        <div class="alert alert-success">
+                            <h5 class="alert-heading">Session Created!</h5>
+                            <p>Share this code with your players:</p>
+                            <h2 class="text-center font-monospace" id="sessionCode"></h2>
+                        </div>
+                        <a id="goToContestBtn" href="#" class="btn btn-success w-100">Go to Contest Page</a>
+                    </div>
+
+                    <div id="errorMessage" class="alert alert-danger d-none mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/contestHub")
+            .withAutomaticReconnect()
+            .build();
+
+        let sessionId = null;
+
+        connection.on("SessionCreated", function (id) {
+            sessionId = id;
+            document.getElementById("sessionCode").textContent = id;
+            document.getElementById("createSessionForm").classList.add("d-none");
+            document.getElementById("sessionCreated").classList.remove("d-none");
+            document.getElementById("goToContestBtn").href = `/GM/Contest?sessionId=${id}`;
+        });
+
+        connection.on("Error", function (message) {
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = message;
+            errorDiv.classList.remove("d-none");
+        });
+
+        document.getElementById("createSessionBtn").addEventListener("click", async function () {
+            const gmName = document.getElementById("gmName").value.trim();
+            if (!gmName) {
+                alert("Please enter your name");
+                return;
+            }
+
+            try {
+                await connection.invoke("CreateSession", gmName);
+            } catch (err) {
+                console.error(err);
+                const errorDiv = document.getElementById("errorMessage");
+                errorDiv.textContent = "Failed to create session: " + err.message;
+                errorDiv.classList.remove("d-none");
+            }
+        });
+
+        connection.start().catch(function (err) {
+            console.error(err);
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = "Failed to connect to server: " + err.message;
+            errorDiv.classList.remove("d-none");
+        });
+    </script>
+}
