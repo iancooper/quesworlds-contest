@@ -243,7 +243,7 @@
 
 ### Winner Decider
 
-- [ ] **TEST + IMPLEMENT: Winner decider determines winner by success count**
+- [x] **TEST + IMPLEMENT: Winner decider determines winner by success count**
   - **USE COMMAND**: `/test-first when one side has more successes should win`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_one_side_has_more_successes_should_win.cs`
@@ -256,7 +256,7 @@
     - Create `WinnerDecider` internal class
     - Create `ContestWinner` public enum
 
-- [ ] **TEST + IMPLEMENT: Winner decider breaks ties with higher roll**
+- [x] **TEST + IMPLEMENT: Winner decider breaks ties with higher roll**
   - **USE COMMAND**: `/test-first when successes are tied should use higher roll as tiebreaker`
   - Test location: `tests/QuestWorlds.Resolution.Tests/`
   - Test file: `When_successes_are_tied_should_use_higher_roll_as_tiebreaker.cs`

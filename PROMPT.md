@@ -87,10 +87,10 @@ Working branch: `feature/questworlds-contest`
 
 **Current Phase**: Phase 2 - Resolution Module
 
-**Next Task**: Winner decider determines winner by success count
+**Next Task**: Contest resolver calculates complete result from known rolls
 - Run `/spec:implement` to continue TDD implementation
-- Test: Player 2 successes vs Resistance 1 success → Player wins with degree 1
-- Test: Player 1 success vs Resistance 3 successes → Resistance wins with degree 2
+- Test: Given known DiceRolls, ResolutionResult contains rolls, successes, winner, and degree
+- Test: Resolving frame without player ability throws InvalidOperationException
 
 **Completed**:
 - [x] Requirements approved
@@ -114,20 +114,20 @@ Working branch: `feature/questworlds-contest`
     - ContestFrame tracks player ability
     - ContestFrame calculates player target number with modifiers
     - ContestFrame knows when ready for resolution
-- [ ] **Phase 2: Resolution Module** (8 tasks, 4 complete)
+- [ ] **Phase 2: Resolution Module** (8 tasks, 6 complete)
   - **Success Calculator** (4 tasks) ✅
     - Returns 1 success when roll below TN
     - Returns 2 successes when roll equals TN (big success)
     - Returns 0 successes when roll above TN
     - Adds mastery successes to total
-  - **Winner Decider** (2 tasks)
+  - **Winner Decider** (2 tasks) ✅
     - Determines winner by success count
     - Breaks ties with higher roll
   - **Contest Resolver** (2 tasks)
     - Orchestrates full resolution
     - Rejects incomplete frames
 
-**Test Count**: 74 tests passing (65 Framing + 9 Resolution)
+**Test Count**: 79 tests passing (65 Framing + 14 Resolution)
 
 **Key Design Decisions**:
 - No `InternalsVisibleTo` - test only public interfaces
