@@ -85,9 +85,9 @@ Working branch: `feature/questworlds-contest`
 
 <!-- Update this section manually when resuming work -->
 
-**Current Phase**: Phase 4 - Session Module
+**Current Phase**: Phase 5 - Web Integration
 
-**Next Task**: Session coordinator creates session with unique ID
+**Next Task**: DiceRoller returns valid D20 rolls
 - Run `/spec:implement` to continue TDD implementation
 
 **Completed**:
@@ -128,13 +128,20 @@ Working branch: `feature/questworlds-contest`
   - Outcome interpreter returns victory modifiers (+5/+10/+15/+20)
   - Outcome interpreter returns defeat modifiers (-5/-10/-15/-20)
   - Outcome includes complete contest context (Prize, abilities, rolls, summary)
+- [x] **Phase 4: Session Module** (4 tasks) ✅
+  - Session coordinator creates session with unique ID (6-char alphanumeric, cryptographically random)
+  - Session coordinator allows players to join
+  - Session coordinator rejects invalid session ID
+  - Session tracks state transitions (WaitingForPlayers → FramingContest → AwaitingPlayerAbility → ResolvingContest → ShowingOutcome)
 
-**Test Count**: 100 tests passing (65 Framing + 15 Resolution + 20 Outcome)
+**Test Count**: 120 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session)
 
 **Key Design Decisions**:
 - No `InternalsVisibleTo` - test only public interfaces
 - `DiceRolls` record passed to `Resolve(frame, rolls)` - Resolution is purely deterministic
 - `IDiceRoller` in separate module - web layer orchestrates: roll dice, then resolve with known rolls
 - All tests pass known `DiceRolls` values - no mocking required
+- Session IDs are 6-character codes using `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (excludes ambiguous 0/O/1/I/L)
+- `SessionModule.CreateCoordinator()` factory for DI-free testing
 
 **Blockers**: None
