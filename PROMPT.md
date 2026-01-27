@@ -85,10 +85,12 @@ Working branch: `feature/questworlds-contest`
 
 <!-- Update this section manually when resuming work -->
 
-**Current Phase**: Phase 5 - Web Integration
+**Current Phase**: Phase 5 - Web Integration (in progress)
 
-**Next Task**: DiceRoller returns valid D20 rolls
-- Run `/spec:implement` to continue TDD implementation
+**Next Task**: GM Razor Pages
+- Create `/GM/Index` - Session creation page
+- Create `/GM/Contest` - Contest framing and resolution page
+- Run `/spec:implement` to continue implementation
 
 **Completed**:
 - [x] Requirements approved
@@ -133,8 +135,14 @@ Working branch: `feature/questworlds-contest`
   - Session coordinator allows players to join
   - Session coordinator rejects invalid session ID
   - Session tracks state transitions (WaitingForPlayers → FramingContest → AwaitingPlayerAbility → ResolvingContest → ShowingOutcome)
+- [x] **Phase 5: Web Integration** (in progress)
+  - [x] DiceRoller returns valid D20 rolls (`IDiceRoller`, `DiceRollerModule.CreateRoller()`)
+  - [x] DI registration for all modules (`ServiceCollectionExtensions` in each module)
+  - [x] SignalR ContestHub (CreateSession, JoinSession, FrameContest, SubmitAbility, ApplyModifier, ResolveContest)
+  - [ ] GM Razor Pages (`/GM/Index`, `/GM/Contest`)
+  - [ ] Player Razor Pages (`/Player/Join`, `/Player/Contest`)
 
-**Test Count**: 120 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session)
+**Test Count**: 127 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session + 3 DiceRoller + 4 Web)
 
 **Key Design Decisions**:
 - No `InternalsVisibleTo` - test only public interfaces
@@ -143,5 +151,8 @@ Working branch: `feature/questworlds-contest`
 - All tests pass known `DiceRolls` values - no mocking required
 - Session IDs are 6-character codes using `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (excludes ambiguous 0/O/1/I/L)
 - `SessionModule.CreateCoordinator()` factory for DI-free testing
+- `DiceRollerModule.CreateRoller()` factory for DI-free testing
+- `ContestHub` uses SignalR groups for session-scoped broadcasting
+- `InMemoryContestFrameStore` holds contest frames per session
 
 **Blockers**: None
