@@ -406,7 +406,7 @@
 
 ### DiceRoller Module
 
-- [ ] **TEST + IMPLEMENT: DiceRoller returns valid D20 rolls**
+- [x] **TEST + IMPLEMENT: DiceRoller returns valid D20 rolls**
   - **USE COMMAND**: `/test-first when rolling dice should return values in valid range`
   - Test location: `tests/QuestWorlds.DiceRoller.Tests/`
   - Test file: `When_rolling_dice_should_return_values_in_valid_range.cs`
