@@ -343,7 +343,7 @@
 
 ## Phase 4: Session Module
 
-- [ ] **TEST + IMPLEMENT: Session coordinator creates session with unique ID**
+- [x] **TEST + IMPLEMENT: Session coordinator creates session with unique ID**
   - **USE COMMAND**: `/test-first when creating session should generate unique ID`
   - Test location: `tests/QuestWorlds.Session.Tests/`
   - Test file: `When_creating_session_should_generate_unique_id.cs`
@@ -360,7 +360,7 @@
     - Create `SessionIdGenerator` internal class
     - Create `Session` public class
 
-- [ ] **TEST + IMPLEMENT: Session coordinator allows players to join**
+- [x] **TEST + IMPLEMENT: Session coordinator allows players to join**
   - **USE COMMAND**: `/test-first when player joins session should be added to participants`
   - Test location: `tests/QuestWorlds.Session.Tests/`
   - Test file: `When_player_joins_session_should_be_added_to_participants.cs`
@@ -374,7 +374,7 @@
     - Create `Participant` public record
     - Create `ParticipantRole` public enum
 
-- [ ] **TEST + IMPLEMENT: Session coordinator rejects invalid session ID**
+- [x] **TEST + IMPLEMENT: Session coordinator rejects invalid session ID**
   - **USE COMMAND**: `/test-first when joining with invalid session ID should throw`
   - Test location: `tests/QuestWorlds.Session.Tests/`
   - Test file: `When_joining_with_invalid_session_id_should_throw.cs`
@@ -387,7 +387,7 @@
     - Create `InMemorySessionRepository` internal class
     - Add validation in JoinSession
 
-- [ ] **TEST + IMPLEMENT: Session tracks state transitions**
+- [x] **TEST + IMPLEMENT: Session tracks state transitions**
   - **USE COMMAND**: `/test-first when session state changes should track correctly`
   - Test location: `tests/QuestWorlds.Session.Tests/`
   - Test file: `When_session_state_changes_should_track_correctly.cs`
