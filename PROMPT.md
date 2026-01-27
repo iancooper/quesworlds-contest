@@ -140,8 +140,17 @@ Working branch: `feature/questworlds-contest`
   - [x] SignalR ContestHub (CreateSession, JoinSession, FrameContest, SubmitAbility, ApplyModifier, ResolveContest)
   - [x] GM Razor Pages (`/GM/Index`, `/GM/Contest`)
   - [x] Player Razor Pages (`/Player/Join`, `/Player/Contest`)
+- [ ] **Phase 6: End-to-End Testing** (not started)
+  - Complete contest workflow integration tests
 
 **Test Count**: 127 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session + 3 DiceRoller + 4 Web)
+
+**Web Pages Created**:
+- `/` - Home page with role selection (GM / Player)
+- `/GM/Index` - Session creation, generates 6-char code
+- `/GM/Contest` - Frame contest, apply modifiers, resolve, view outcome
+- `/Player/Join` - Enter session code and name
+- `/Player/Contest` - Submit ability, view modifiers, see outcome
 
 **Key Design Decisions**:
 - No `InternalsVisibleTo` - test only public interfaces
@@ -153,5 +162,14 @@ Working branch: `feature/questworlds-contest`
 - `DiceRollerModule.CreateRoller()` factory for DI-free testing
 - `ContestHub` uses SignalR groups for session-scoped broadcasting
 - `InMemoryContestFrameStore` holds contest frames per session
+- Razor Pages use SignalR JavaScript client for real-time updates
+- Safe DOM manipulation (no innerHTML) to prevent XSS
 
 **Blockers**: None
+
+**To Run the App**:
+```bash
+cd src/QuestWorlds.Web
+dotnet run
+```
+Then open https://localhost:5001 (or http://localhost:5000)
