@@ -85,11 +85,9 @@ Working branch: `feature/questworlds-contest`
 
 <!-- Update this section manually when resuming work -->
 
-**Current Phase**: Phase 5 - Web Integration (complete)
+**Current Phase**: Phase 6 - End-to-End Testing (complete)
 
-**Next Task**: Phase 6 - End-to-End Testing
-- Complete contest workflow integration tests
-- Run `/spec:implement` to continue implementation
+**Status**: All phases complete! Application is ready for manual testing and deployment.
 
 **Completed**:
 - [x] Requirements approved
@@ -140,10 +138,11 @@ Working branch: `feature/questworlds-contest`
   - [x] SignalR ContestHub (CreateSession, JoinSession, FrameContest, SubmitAbility, ApplyModifier, ResolveContest)
   - [x] GM Razor Pages (`/GM/Index`, `/GM/Contest`)
   - [x] Player Razor Pages (`/Player/Join`, `/Player/Contest`)
-- [ ] **Phase 6: End-to-End Testing** (not started)
-  - Complete contest workflow integration tests
+- [x] **Phase 6: End-to-End Testing** ✅
+  - Complete contest workflow integration tests (5 tests)
+  - GM creates session, player joins, frame contest, submit ability, apply modifiers, resolve, receive outcome
 
-**Test Count**: 127 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session + 3 DiceRoller + 4 Web)
+**Test Count**: 132 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session + 3 DiceRoller + 9 Web)
 
 **Web Pages Created**:
 - `/` - Home page with role selection (GM / Player)

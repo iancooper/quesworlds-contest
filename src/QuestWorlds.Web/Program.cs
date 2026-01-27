@@ -42,3 +42,6 @@ app.MapRazorPages()
 app.MapHub<ContestHub>("/contestHub");
 
 app.Run();
+
+// Enable WebApplicationFactory for integration testing
+public partial class Program { }

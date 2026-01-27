@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
@@ -20,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\QuestWorlds.Web\QuestWorlds.Web.csproj" />
     <ProjectReference Include="..\..\src\QuestWorlds.Session\QuestWorlds.Session.csproj" />
     <ProjectReference Include="..\..\src\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
     <ProjectReference Include="..\..\src\QuestWorlds.DiceRoller\QuestWorlds.DiceRoller.csproj" />

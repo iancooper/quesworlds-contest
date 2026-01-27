@@ -461,7 +461,7 @@
 
 ## Phase 6: End-to-End Testing
 
-- [ ] **TEST: Complete contest workflow**
+- [x] **TEST: Complete contest workflow**
   - Test location: `tests/QuestWorlds.Web.Tests/`
   - Test file: `Complete_contest_workflow_tests.cs`
   - Test should verify:
