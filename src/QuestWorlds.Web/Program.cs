@@ -1,7 +1,24 @@
+using QuestWorlds.DiceRoller;
+using QuestWorlds.Outcome;
+using QuestWorlds.Resolution;
+using QuestWorlds.Session;
+using QuestWorlds.Web.Hubs;
+using QuestWorlds.Web.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
+
+// Register QuestWorlds modules
+builder.Services.AddSessionModule();
+builder.Services.AddDiceRollerModule();
+builder.Services.AddResolutionModule();
+builder.Services.AddOutcomeModule();
+
+// Register web services
+builder.Services.AddSingleton<IContestFrameStore, InMemoryContestFrameStore>();
 
 var app = builder.Build();
 
@@ -22,5 +39,6 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+app.MapHub<ContestHub>("/contestHub");
 
 app.Run();
