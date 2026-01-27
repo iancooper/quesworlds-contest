@@ -2,25 +2,52 @@
 
 > **Purpose**: This file provides context for AI assistants (Claude) to resume work on this project.
 
+## Project Status: Complete ✅
+
+All 6 phases implemented with **132 tests passing**.
+
 ## Project Overview
 
 A web application for running QuestWorlds simple contests online between a GM and players.
 
 **Core Workflow**:
 
-1. GM creates a session and shares the ID with players
+1. GM creates a session and shares the 6-character code with players
 2. GM frames a contest (prize + resistance TN)
 3. Player submits their ability and rating
 4. GM applies modifiers (stretch, situational, augment, hindrance)
 5. System rolls D20 for both sides, calculates successes, determines winner
 6. Both see the outcome with suggested benefit/consequence modifier
 
+## Quick Start
+
+```bash
+# Run the application
+cd src/QuestWorlds.Web
+dotnet run
+
+# Run all tests
+dotnet test
+```
+
+Then open https://localhost:5001 (or http://localhost:5000)
+
+## Web Pages
+
+| Page | Purpose |
+|------|---------|
+| `/` | Home page with role selection (GM / Player) |
+| `/GM/Index` | Create session, get 6-character code |
+| `/GM/Contest` | Frame contest, apply modifiers, resolve |
+| `/Player/Join` | Enter session code and name |
+| `/Player/Contest` | Submit ability, view outcome |
+
 ## Technology Stack
 
 - **Framework**: ASP.NET Core 9 with Razor Pages
 - **Real-time**: SignalR for session synchronization
 - **Styling**: Bootstrap 5
-- **Testing**: xUnit + FakeItEasy
+- **Testing**: xUnit with SignalR integration tests
 
 ## Architecture
 
@@ -29,51 +56,63 @@ Five domain modules (assemblies) + web layer:
 | Module | Public API | Responsibility |
 |--------|------------|----------------|
 | `QuestWorlds.Session` | `ISessionCoordinator`, `Session`, `Participant` | Session creation, joining, state |
-| `QuestWorlds.Framing` | `IContestFramer`, `ContestFrame`, `Rating`, `TargetNumber`, `Modifier` | Contest setup, abilities, modifiers |
+| `QuestWorlds.Framing` | `ContestFrame`, `Rating`, `TargetNumber`, `Modifier` | Contest setup, abilities, modifiers |
 | `QuestWorlds.DiceRoller` | `IDiceRoller` | Random D20 generation |
-| `QuestWorlds.Resolution` | `IContestResolver`, `ResolutionResult`, `DiceRolls`, `ContestWinner` | Success calculation (purely deterministic) |
-| `QuestWorlds.Outcome` | `IOutcomeInterpreter`, `ContestOutcome`, `DegreeDescription` | Result interpretation, benefit/consequence lookup |
+| `QuestWorlds.Resolution` | `IContestResolver`, `ResolutionResult`, `DiceRolls` | Success calculation (deterministic) |
+| `QuestWorlds.Outcome` | `IOutcomeInterpreter`, `ContestOutcome` | Result interpretation |
 
-**Key Design Principles**:
-- Only public interfaces are tested. Implementations are internal.
-- Resolution module is purely deterministic - web layer uses DiceRoller to generate rolls, then passes them to Resolution.
+## Test Coverage
+
+| Module | Tests |
+|--------|-------|
+| Framing | 65 |
+| Session | 20 |
+| Outcome | 20 |
+| Resolution | 15 |
+| Web (integration) | 9 |
+| DiceRoller | 3 |
+| **Total** | **132** |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `specs/0001-questworlds-contest/requirements.md` | User requirements and acceptance criteria |
-| `specs/0001-questworlds-contest/tasks.md` | Implementation task list with TDD workflow |
-| `docs/adr/0001-user-interface-architecture.md` | Overall architecture |
-| `docs/adr/0002-session-management.md` | Session module design |
-| `docs/adr/0003-framing-module.md` | Framing module design |
-| `docs/adr/0004-resolution-module.md` | Resolution module design (deterministic) |
-| `docs/adr/0005-outcome-module.md` | Outcome module design |
-| `docs/adr/0006-diceroller-module.md` | DiceRoller module design (randomness) |
+| `specs/0001-questworlds-contest/requirements.md` | User requirements |
+| `specs/0001-questworlds-contest/tasks.md` | Implementation tasks |
+| `docs/adr/*.md` | Architecture Decision Records (6 ADRs) |
+| `src/QuestWorlds.Web/Hubs/ContestHub.cs` | SignalR hub for real-time |
+| `src/QuestWorlds.Web/Pages/GM/*.cshtml` | GM interface |
+| `src/QuestWorlds.Web/Pages/Player/*.cshtml` | Player interface |
 
 ## QuestWorlds Rules Reference
 
 **Success Calculation**:
-
 - Roll < TN = 1 success
 - Roll = TN = 2 successes (big success)
 - Roll > TN = 0 successes
 - Each mastery = +1 success
 
 **Winner Determination**:
-
 - More successes wins
 - Tie: higher roll wins
 - Degree = difference in successes
 
 **Rating Notation**: `15` (base), `5M` (5 + 1 mastery), `6M2` (6 + 2 masteries)
 
-## Commands
+**Benefit/Consequence Modifiers**:
+- Degree 0: ±5
+- Degree 1: ±10
+- Degree 2: ±15
+- Degree 3+: ±20
 
-- `/spec:status` - Show specification status
-- `/spec:review` - Review current phase
-- `/spec:implement` - Begin implementation
-- `/test-first [behavior]` - TDD workflow for a task
+## Key Design Decisions
+
+- **No `InternalsVisibleTo`** - test only public interfaces
+- **Deterministic Resolution** - `DiceRolls` passed to `Resolve(frame, rolls)`
+- **Separate DiceRoller** - web layer orchestrates: roll → resolve → interpret
+- **Session IDs** - 6-char codes using `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no ambiguous chars)
+- **SignalR Groups** - session-scoped broadcasting
+- **Safe DOM** - no innerHTML, prevents XSS
 
 ## Branch
 
@@ -81,94 +120,32 @@ Working branch: `feature/questworlds-contest`
 
 ---
 
-## What's Next
+## Implementation Summary
 
-<!-- Update this section manually when resuming work -->
+### Phase 1: Framing Module ✅
+Rating, Modifier, TargetNumber value objects; ContestFrame aggregate
 
-**Current Phase**: Phase 6 - End-to-End Testing (complete)
+### Phase 2: Resolution Module ✅
+Success calculator, winner decider, contest resolver (deterministic)
 
-**Status**: All phases complete! Application is ready for manual testing and deployment.
+### Phase 3: Outcome Module ✅
+Benefit/consequence lookup, contest outcome with full context
 
-**Completed**:
-- [x] Requirements approved
-- [x] All 5 ADRs accepted
-- [x] Tasks approved (31 tasks)
-- [x] Phase 0: Solution structure created (`QuestWorlds.slnx`)
-- [x] **Phase 1: Framing Module** (12 tasks) ✅
-  - **Rating Value Object** (4 tasks)
-    - Rating parses simple numeric notation (`"15"` → Base=15, Masteries=0)
-    - Rating parses mastery notation with single mastery (`"5M"` → Base=5, Masteries=1)
-    - Rating parses mastery notation with multiple masteries (`"6M2"` → Base=6, Masteries=2)
-    - Rating rejects invalid base values (must be 1-20)
-  - **Modifier Value Object** (2 tasks)
-    - Modifier validates stretch must be negative
-    - Modifier validates allowed values (±5 or ±10)
-  - **TargetNumber Value Object** (2 tasks)
-    - TargetNumber calculates effective base with modifier (clamped 1-20)
-    - TargetNumber creates from Rating
-  - **ContestFrame Aggregate** (4 tasks)
-    - ContestFrame requires prize and resistance
-    - ContestFrame tracks player ability
-    - ContestFrame calculates player target number with modifiers
-    - ContestFrame knows when ready for resolution
-- [x] **Phase 2: Resolution Module** (8 tasks) ✅
-  - **Success Calculator** (4 tasks) ✅
-    - Returns 1 success when roll below TN
-    - Returns 2 successes when roll equals TN (big success)
-    - Returns 0 successes when roll above TN
-    - Adds mastery successes to total
-  - **Winner Decider** (2 tasks) ✅
-    - Determines winner by success count
-    - Breaks ties with higher roll
-  - **Contest Resolver** (2 tasks) ✅
-    - Orchestrates full resolution
-    - Rejects incomplete frames
-- [x] **Phase 3: Outcome Module** (3 tasks) ✅
-  - Outcome interpreter returns victory modifiers (+5/+10/+15/+20)
-  - Outcome interpreter returns defeat modifiers (-5/-10/-15/-20)
-  - Outcome includes complete contest context (Prize, abilities, rolls, summary)
-- [x] **Phase 4: Session Module** (4 tasks) ✅
-  - Session coordinator creates session with unique ID (6-char alphanumeric, cryptographically random)
-  - Session coordinator allows players to join
-  - Session coordinator rejects invalid session ID
-  - Session tracks state transitions (WaitingForPlayers → FramingContest → AwaitingPlayerAbility → ResolvingContest → ShowingOutcome)
-- [x] **Phase 5: Web Integration** ✅
-  - [x] DiceRoller returns valid D20 rolls (`IDiceRoller`, `DiceRollerModule.CreateRoller()`)
-  - [x] DI registration for all modules (`ServiceCollectionExtensions` in each module)
-  - [x] SignalR ContestHub (CreateSession, JoinSession, FrameContest, SubmitAbility, ApplyModifier, ResolveContest)
-  - [x] GM Razor Pages (`/GM/Index`, `/GM/Contest`)
-  - [x] Player Razor Pages (`/Player/Join`, `/Player/Contest`)
-- [x] **Phase 6: End-to-End Testing** ✅
-  - Complete contest workflow integration tests (5 tests)
-  - GM creates session, player joins, frame contest, submit ability, apply modifiers, resolve, receive outcome
+### Phase 4: Session Module ✅
+Session coordinator, participant management, state transitions
 
-**Test Count**: 132 tests passing (65 Framing + 15 Resolution + 20 Outcome + 20 Session + 3 DiceRoller + 9 Web)
+### Phase 5: Web Integration ✅
+DiceRoller, DI registration, SignalR ContestHub, GM/Player Razor Pages
 
-**Web Pages Created**:
-- `/` - Home page with role selection (GM / Player)
-- `/GM/Index` - Session creation, generates 6-char code
-- `/GM/Contest` - Frame contest, apply modifiers, resolve, view outcome
-- `/Player/Join` - Enter session code and name
-- `/Player/Contest` - Submit ability, view modifiers, see outcome
+### Phase 6: End-to-End Testing ✅
+SignalR integration tests for complete contest workflow
 
-**Key Design Decisions**:
-- No `InternalsVisibleTo` - test only public interfaces
-- `DiceRolls` record passed to `Resolve(frame, rolls)` - Resolution is purely deterministic
-- `IDiceRoller` in separate module - web layer orchestrates: roll dice, then resolve with known rolls
-- All tests pass known `DiceRolls` values - no mocking required
-- Session IDs are 6-character codes using `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (excludes ambiguous 0/O/1/I/L)
-- `SessionModule.CreateCoordinator()` factory for DI-free testing
-- `DiceRollerModule.CreateRoller()` factory for DI-free testing
-- `ContestHub` uses SignalR groups for session-scoped broadcasting
-- `InMemoryContestFrameStore` holds contest frames per session
-- Razor Pages use SignalR JavaScript client for real-time updates
-- Safe DOM manipulation (no innerHTML) to prevent XSS
+---
 
-**Blockers**: None
+## Future Enhancements (Not Implemented)
 
-**To Run the App**:
-```bash
-cd src/QuestWorlds.Web
-dotnet run
-```
-Then open https://localhost:5001 (or http://localhost:5000)
+- Multiple players per session
+- Contest history/logging
+- Persistent sessions (database)
+- Authentication
+- Mobile app
