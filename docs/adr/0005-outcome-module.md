@@ -63,7 +63,7 @@ We will implement the Outcome module with a simple interpreter that combines the
 │  │  - PlayerSuccesses, ResistanceSuccesses                  │   │
 │  │                                                          │   │
 │  │  Outcome:                                                │   │
-│  │  - Winner, Degree, DegreeDescription                     │   │
+│  │  - Winner, Degree,                                       │   │
 │  │  - IsVictory, BenefitConsequenceModifier                 │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
@@ -97,17 +97,6 @@ We will implement the Outcome module with a simple interpreter that combines the
 namespace QuestWorlds.Outcome;
 
 /// <summary>
-/// Descriptive label for degree of victory/defeat.
-/// </summary>
-public enum DegreeDescription
-{
-    Marginal,  // 0 degree
-    Minor,     // 1 degree
-    Major,     // 2 degree
-    Complete   // 3+ degree
-}
-
-/// <summary>
 /// Complete outcome of a contest, ready for display.
 /// </summary>
 public sealed record ContestOutcome
@@ -129,7 +118,6 @@ public sealed record ContestOutcome
     // Outcome
     public required ContestWinner Winner { get; init; }
     public required int Degree { get; init; }
-    public required DegreeDescription DegreeDescription { get; init; }
 
     /// <summary>
     /// True if the player won (not resistance, not tie).
@@ -147,8 +135,8 @@ public sealed record ContestOutcome
     /// </summary>
     public string Summary => Winner switch
     {
-        ContestWinner.Player => $"{DegreeDescription} Victory for the player!",
-        ContestWinner.Resistance => $"{DegreeDescription} Defeat for the player.",
+        ContestWinner.Player => $"{Degree} Degrees of Victory for the player!",
+        ContestWinner.Resistance => $"{Degree} Degrees of Defeat for the player.",
         ContestWinner.Tie => "The contest is a tie.",
         _ => "Unknown outcome"
     };
@@ -210,8 +198,6 @@ internal class OutcomeInterpreter : IOutcomeInterpreter
 
     public ContestOutcome Interpret(ResolutionResult result, ContestFrame frame)
     {
-        var degreeDescription = GetDegreeDescription(result.Degree);
-
         var isVictory = result.Winner == ContestWinner.Player;
         var modifier = result.Winner == ContestWinner.Tie
             ? 0
@@ -236,18 +222,9 @@ internal class OutcomeInterpreter : IOutcomeInterpreter
             // Outcome
             Winner = result.Winner,
             Degree = result.Degree,
-            DegreeDescription = degreeDescription,
             BenefitConsequenceModifier = modifier
         };
     }
-
-    private static DegreeDescription GetDegreeDescription(int degree) => degree switch
-    {
-        0 => DegreeDescription.Marginal,
-        1 => DegreeDescription.Minor,
-        2 => DegreeDescription.Major,
-        _ => DegreeDescription.Complete // 3 or higher
-    };
 
     private static string FormatTargetNumber(TargetNumber tn) =>
         tn.Masteries == 0 ? tn.Base.ToString() :
@@ -265,7 +242,6 @@ Only the interpreter interface and outcome types are public. The lookup table is
 ```csharp
 public interface IOutcomeInterpreter { ... }
 public sealed record ContestOutcome { ... }
-public enum DegreeDescription { ... }
 ```
 
 **Internal Implementation** (hidden from consumers):
@@ -329,7 +305,6 @@ The `ContestOutcome` provides all data needed for the UI:
 | PlayerRoll | 8 | Show die result |
 | PlayerSuccesses | 3 | Show total successes |
 | Winner | Player | Highlight winner |
-| DegreeDescription | Minor | Show victory/defeat level |
 | BenefitConsequenceModifier | +10 | Show suggested modifier |
 | Summary | "Minor Victory for the player!" | Headline text |
 
