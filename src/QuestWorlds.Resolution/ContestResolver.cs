@@ -9,6 +9,9 @@ public class ContestResolver : IContestResolver
 {
     public ResolutionResult Resolve(ContestFrame frame, DiceRolls rolls)
     {
+        if (!frame.IsReadyForResolution)
+            throw new InvalidOperationException("Contest frame is not ready for resolution. Player ability must be set.");
+
         var playerSuccesses = CalculateSuccesses(rolls.PlayerRoll, frame.GetPlayerTargetNumber()!.Value);
         var resistanceSuccesses = CalculateSuccesses(rolls.ResistanceRoll, frame.Resistance);
 
