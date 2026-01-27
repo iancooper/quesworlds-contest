@@ -421,7 +421,7 @@
 
 ### DI Registration
 
-- [ ] **TEST + IMPLEMENT: DI registration for all modules**
+- [x] **TEST + IMPLEMENT: DI registration for all modules**
   - **USE COMMAND**: `/test-first when registering services should resolve all interfaces`
   - Test location: `tests/QuestWorlds.Web.Tests/`
   - Test file: `When_registering_services_should_resolve_all_interfaces.cs`
