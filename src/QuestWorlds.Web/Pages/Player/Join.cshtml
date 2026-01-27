@@ -1,0 +1,100 @@
+@page
+@model QuestWorlds.Web.Pages.Player.JoinModel
+@{
+    ViewData["Title"] = "Player - Join Session";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Join Game Session</h4>
+                </div>
+                <div class="card-body">
+                    <div id="joinSessionForm">
+                        <div class="mb-3">
+                            <label for="sessionCode" class="form-label">Session Code</label>
+                            <input type="text" class="form-control font-monospace text-uppercase" id="sessionCode"
+                                   placeholder="Enter 6-character code" maxlength="6" required>
+                            <div class="form-text">Get this code from your GM</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="playerName" class="form-label">Your Name</label>
+                            <input type="text" class="form-control" id="playerName" placeholder="Enter your name" required>
+                        </div>
+                        <button id="joinSessionBtn" class="btn btn-success w-100">Join Session</button>
+                    </div>
+
+                    <div id="sessionJoined" class="d-none">
+                        <div class="alert alert-success">
+                            <h5 class="alert-heading">Joined Session!</h5>
+                            <p>You have joined session <span id="joinedSessionCode" class="font-monospace fw-bold"></span></p>
+                        </div>
+                        <a id="goToContestBtn" href="#" class="btn btn-success w-100">Go to Contest Page</a>
+                    </div>
+
+                    <div id="errorMessage" class="alert alert-danger d-none mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/contestHub")
+            .withAutomaticReconnect()
+            .build();
+
+        let sessionId = null;
+        let playerName = null;
+
+        connection.on("PlayerJoined", function (name) {
+            if (name === playerName) {
+                document.getElementById("joinedSessionCode").textContent = sessionId;
+                document.getElementById("joinSessionForm").classList.add("d-none");
+                document.getElementById("sessionJoined").classList.remove("d-none");
+                document.getElementById("goToContestBtn").href = "/Player/Contest?sessionId=" + sessionId + "&playerName=" + encodeURIComponent(playerName);
+            }
+        });
+
+        connection.on("Error", function (message) {
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = message;
+            errorDiv.classList.remove("d-none");
+        });
+
+        document.getElementById("joinSessionBtn").addEventListener("click", async function () {
+            sessionId = document.getElementById("sessionCode").value.trim().toUpperCase();
+            playerName = document.getElementById("playerName").value.trim();
+
+            if (!sessionId || sessionId.length !== 6) {
+                alert("Please enter a valid 6-character session code");
+                return;
+            }
+            if (!playerName) {
+                alert("Please enter your name");
+                return;
+            }
+
+            try {
+                await connection.invoke("JoinSession", sessionId, playerName);
+            } catch (err) {
+                console.error(err);
+                const errorDiv = document.getElementById("errorMessage");
+                errorDiv.textContent = "Failed to join session: " + err.message;
+                errorDiv.classList.remove("d-none");
+            }
+        });
+
+        connection.start().catch(function (err) {
+            console.error(err);
+            const errorDiv = document.getElementById("errorMessage");
+            errorDiv.textContent = "Failed to connect to server: " + err.message;
+            errorDiv.classList.remove("d-none");
+        });
+    </script>
+}

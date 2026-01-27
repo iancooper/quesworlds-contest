@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuestWorlds.DiceRoller/QuestWorlds.DiceRoller.csproj" />
+    <Project Path="src/QuestWorlds.Framing/QuestWorlds.Framing.csproj" />
+    <Project Path="src/QuestWorlds.Outcome/QuestWorlds.Outcome.csproj" />
+    <Project Path="src/QuestWorlds.Resolution/QuestWorlds.Resolution.csproj" />
+    <Project Path="src/QuestWorlds.Session/QuestWorlds.Session.csproj" />
+    <Project Path="src/QuestWorlds.Web/QuestWorlds.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QuestWorlds.DiceRoller.Tests/QuestWorlds.DiceRoller.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.Framing.Tests/QuestWorlds.Framing.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.Outcome.Tests/QuestWorlds.Outcome.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.Resolution.Tests/QuestWorlds.Resolution.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.Session.Tests/QuestWorlds.Session.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.Web.Tests/QuestWorlds.Web.Tests.csproj" />
+  </Folder>
+</Solution>

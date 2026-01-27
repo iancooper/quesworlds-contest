@@ -1,0 +1,48 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center">
+    <h1 class="display-4">QuestWorlds Contest</h1>
+    <p class="lead">Run simple contests online between a GM and players</p>
+    <hr class="my-4">
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Game Master</h4>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text flex-grow-1">Create a session and frame contests for your players. Set the prize, resistance, and apply modifiers.</p>
+                    <a asp-page="/GM/Index" class="btn btn-primary">Start as GM</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Player</h4>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text flex-grow-1">Join a session using the code from your GM. Submit your ability and rating to resolve contests.</p>
+                    <a asp-page="/Player/Join" class="btn btn-success">Join as Player</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <h5>How It Works</h5>
+        <ol class="text-start mx-auto" style="max-width: 500px;">
+            <li>GM creates a session and shares the code with players</li>
+            <li>GM frames a contest with a prize and resistance TN</li>
+            <li>Player submits their ability and rating</li>
+            <li>GM applies modifiers (stretch, situational, augment, hindrance)</li>
+            <li>System rolls D20 for both sides and determines the winner</li>
+            <li>Both see the outcome with suggested benefit/consequence modifier</li>
+        </ol>
+    </div>
+</div>
