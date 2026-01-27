@@ -299,7 +299,7 @@
 
 ## Phase 3: Outcome Module
 
-- [ ] **TEST + IMPLEMENT: Outcome interpreter looks up benefit/consequence modifier**
+- [x] **TEST + IMPLEMENT: Outcome interpreter looks up benefit/consequence modifier**
   - **USE COMMAND**: `/test-first when interpreting victory should return positive modifier`
   - Test location: `tests/QuestWorlds.Outcome.Tests/`
   - Test file: `When_interpreting_victory_should_return_positive_modifier.cs`
@@ -313,7 +313,7 @@
     - Create `IBenefitConsequenceLookup` internal interface
     - Create `BenefitConsequenceLookup` internal class
 
-- [ ] **TEST + IMPLEMENT: Outcome interpreter returns negative modifier for defeat**
+- [x] **TEST + IMPLEMENT: Outcome interpreter returns negative modifier for defeat**
   - **USE COMMAND**: `/test-first when interpreting defeat should return negative modifier`
   - Test location: `tests/QuestWorlds.Outcome.Tests/`
   - Test file: `When_interpreting_defeat_should_return_negative_modifier.cs`
@@ -326,7 +326,7 @@
   - Implementation should:
     - Add defeat case to BenefitConsequenceLookup
 
-- [ ] **TEST + IMPLEMENT: Outcome includes complete contest context**
+- [x] **TEST + IMPLEMENT: Outcome includes complete contest context**
   - **USE COMMAND**: `/test-first when interpreting should include contest context`
   - Test location: `tests/QuestWorlds.Outcome.Tests/`
   - Test file: `When_interpreting_should_include_contest_context.cs`
