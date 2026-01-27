@@ -436,7 +436,7 @@
     - Create ServiceCollectionExtensions in each module
     - Register all services in Program.cs
 
-- [ ] **IMPLEMENT: SignalR ContestHub**
+- [x] **IMPLEMENT: SignalR ContestHub**
   - Create ContestHub with methods:
     - CreateSession(gmName) → sessionId
     - JoinSession(sessionId, playerName)
