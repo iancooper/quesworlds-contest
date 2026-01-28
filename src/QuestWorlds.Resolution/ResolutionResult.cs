@@ -5,6 +5,20 @@ namespace QuestWorlds.Resolution;
 /// </summary>
 public sealed record ResolutionResult
 {
+    public ResolutionResult()
+    {
+    }
+
+    public ResolutionResult(int playerRoll, int resistanceRoll, int playerSuccesses, int resistanceSuccesses, ContestWinner winner, int degree)
+    {
+        PlayerRoll = playerRoll;
+        ResistanceRoll = resistanceRoll;
+        PlayerSuccesses = playerSuccesses;
+        ResistanceSuccesses = resistanceSuccesses;
+        Winner = winner;
+        Degree = degree;
+    }
+
     /// <summary>
     /// Gets the player's D20 roll result.
     /// </summary>

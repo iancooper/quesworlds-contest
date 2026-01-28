@@ -34,14 +34,23 @@ This module resolves contests by calculating successes from dice rolls and deter
 
 ## Key Types
 
+### Public Types
+
 | Type | Description |
 |------|-------------|
-| `IContestResolver` | Interface for resolving contests |
-| `ContestResolver` | Implementation of contest resolution logic |
+| `IContestResolver` | Main entry point for contest resolution |
+| `ContestResolver` | Implementation of IContestResolver |
 | `DiceRolls` | Value object containing player and resistance roll values |
 | `ResolutionResult` | Immutable result containing all resolution data |
 | `ContestWinner` | Enum indicating who won (Player, Resistance, or Tie) |
 | `ServiceCollectionExtensions` | Extension methods for dependency injection |
+
+### Internal Types (Implementation Details)
+
+| Type               | Description                                          |
+|--------------------|------------------------------------------------------|
+| `SuccessCalculator` | Determines the number of successes from the die roll |
+| `Adjudicator`      | Adjudicates the winner from the die rolls            |
 
 ## QuestWorlds Success Calculation
 
