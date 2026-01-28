@@ -5,12 +5,14 @@ namespace QuestWorlds.Outcome;
 
 /// <summary>
 /// Interprets resolution results into displayable outcomes.
+/// Applies the QuestWorlds benefit/consequence table to determine modifiers.
 /// </summary>
 public class OutcomeInterpreter : IOutcomeInterpreter
 {
     private static readonly int[] BENEFIT_MODIFIERS = [5, 10, 15, 20];
     private static readonly int[] CONSEQUENCE_MODIFIERS = [-5, -10, -15, -20];
 
+    /// <inheritdoc />
     public ContestOutcome Interpret(ResolutionResult result, ContestFrame frame)
     {
         var index = Math.Clamp(result.Degree, 0, 3);

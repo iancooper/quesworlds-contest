@@ -2,7 +2,6 @@ namespace QuestWorlds.Session;
 
 /// <summary>
 /// Factory for creating Session module components.
-/// Use this for testing or when not using dependency injection.
 /// </summary>
 public static class SessionModule
 {

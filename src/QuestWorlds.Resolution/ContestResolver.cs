@@ -4,9 +4,11 @@ namespace QuestWorlds.Resolution;
 
 /// <summary>
 /// Resolves contests by calculating successes and determining the winner.
+/// Implements QuestWorlds simple contest resolution rules.
 /// </summary>
 public class ContestResolver : IContestResolver
 {
+    /// <inheritdoc />
     public ResolutionResult Resolve(ContestFrame frame, DiceRolls rolls)
     {
         if (!frame.IsReadyForResolution)
@@ -46,6 +48,7 @@ public class ContestResolver : IContestResolver
         return (ContestWinner.Tie, 0);
     }
 
+    /// <inheritdoc />
     public ResolutionResult Resolve(ContestFrame frame)
     {
         var rolls = new DiceRolls(
