@@ -91,8 +91,8 @@ public class ContestHub : Hub<IContestHubClient>
                 return;
             }
 
-            var resistance = Rating.Parse(resistanceTn);
-            var frame = new ContestFrame(prize, TargetNumber.FromRating(resistance));
+            //TODO: We could possibly move Rating.Parse within TargetNumber.FromRating to hide details
+            var frame = new ContestFrame(prize, TargetNumber.FromRating(Rating.Parse(resistanceTn)));
             _frameStore.SetFrame(sessionId, frame);
 
             session.TransitionTo(SessionState.AwaitingPlayerAbility);
