@@ -2,7 +2,7 @@
 
 **Spec ID**: 0002
 **Created**: 2026-09-13
-**Status**: Tasks drafted — awaiting approval, then implementation
+**Status**: All phases approved — ready for implementation (`/spec:implement`)
 
 ## Overview
 
@@ -23,7 +23,7 @@ copies. The id generator stays internal, and an unconfigured app still behaves e
 - [x] **Design** — ADRs recorded in `docs/adr/`, listed in `.adr-list` (`/spec:design`)
 - [x] **Design approved** — `.design-approved` (`/spec:approve design`)
 - [x] **Tasks** — `tasks.md` drafted (`/spec:tasks`)
-- [ ] **Tasks approved** — `.tasks-approved` (`/spec:approve tasks`)
+- [x] **Tasks approved** — `.tasks-approved` (`/spec:approve tasks`)
 - [ ] **Implementation** — TDD implementation complete (`/spec:implement`)
 
 ## Artifacts
@@ -32,4 +32,4 @@ copies. The id generator stays internal, and an unconfigured app still behaves e
 |---|---|---|
 | Requirements | `specs/0002-persistent_sessions/requirements.md` | Approved (v4) |
 | Design (ADRs) | `docs/adr/0007`–`0010` (see `.adr-list`) | All four accepted |
-| Tasks | `specs/0002-persistent_sessions/tasks.md` | Drafted — awaiting approval |
+| Tasks | `specs/0002-persistent_sessions/tasks.md` | Approved — 23 tasks, 9 phases |
