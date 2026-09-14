@@ -45,6 +45,9 @@ bld/
 
 # JetBrains Rider cache/options directory
 .idea/
+
+# Working context for the current spec; local to a branch, never committed
+PROMPT.md
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
