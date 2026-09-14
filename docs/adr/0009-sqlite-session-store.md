@@ -10,7 +10,7 @@ Proposed
 
 **Parent Requirement**: [specs/0002-persistent_sessions/requirements.md](../../specs/0002-persistent_sessions/requirements.md)
 
-**Scope**: This ADR decides **what goes inside `QuestWorlds.SqliteSessionStore`** — data access library, schema, how a `Session` maps to rows, how the schema comes into being, connection handling, and what a reloaded session actually means. It takes [ADR-0007](0007-session-storage-port.md)'s contract and [ADR-0008](0008-session-store-module-composition.md)'s composition as given.
+**Scope**: This ADR decides **what goes inside `QuestWorlds.SqliteSessionStore`** — data access library, schema, how a `Session` and its `ContestFrame` map to rows, how the schema comes into being, connection handling, and what a reloaded session actually means. It takes [ADR-0007](0007-session-storage-port.md)'s contract, [ADR-0008](0008-session-store-module-composition.md)'s composition, and [ADR-0010](0010-contest-frame-storage-port.md)'s frame port as given.
 
 Everything decided here is behind the port. A different answer to any of it changes nothing in `QuestWorlds.Session`, in `ISessionCoordinator`, or in `ContestHub` — which is the claim the module exists to demonstrate.
 
@@ -64,6 +64,37 @@ CREATE TABLE IF NOT EXISTS Participants (
 
 *Why `Ordinal`*: `Session.Players` is an ordered list, and a table is a set. The column preserves join order across a round trip so that a reloaded session equals the one that was stored.
 
+Per [ADR-0010](0010-contest-frame-storage-port.md) this store also holds the contest frame, which is one row per session plus its modifiers:
+
+```sql
+CREATE TABLE IF NOT EXISTS ContestFrames (
+    SessionId          TEXT PRIMARY KEY NOT NULL,
+    Prize              TEXT NOT NULL,
+    ResistanceBase     INTEGER NOT NULL,
+    ResistanceMasteries INTEGER NOT NULL,
+    ResistanceModifier INTEGER NOT NULL,
+    PlayerAbilityName  TEXT NULL,
+    PlayerRatingBase   INTEGER NULL,
+    PlayerRatingMasteries INTEGER NULL,
+    FOREIGN KEY (SessionId) REFERENCES Sessions(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ContestModifiers (
+    SessionId TEXT NOT NULL,
+    Ordinal   INTEGER NOT NULL,
+    Type      TEXT NOT NULL,
+    Value     INTEGER NOT NULL,
+    PRIMARY KEY (SessionId, Ordinal),
+    FOREIGN KEY (SessionId) REFERENCES ContestFrames(SessionId) ON DELETE CASCADE
+);
+```
+
+*Why `TargetNumber` and `Rating` become columns rather than a formatted string*: both are `readonly record struct`s of two or three ints with public constructors. Storing `Base`/`Masteries`/`Modifier` separately means loading needs a constructor call and no parser, and `Rating.Parse` stays a thing the UI does to user input rather than something the database depends on.
+
+*Why the player's ability and rating are nullable*: a frame exists from the moment the GM sets a prize and resistance, and the player's side arrives later. The nullability in the schema is the nullability already on `ContestFrame`.
+
+*Why the cascade runs from `Sessions`*: removing a session removes its frame and that frame's modifiers. A frame has no meaning without its session.
+
 ### D3. Enums are stored as text, not integers
 
 `State` and `Role` are written as their enum names (`AwaitingPlayerAbility`, `Player`).
@@ -84,6 +115,10 @@ COMMIT
 *Why delete-and-reinsert rather than diffing the participants*: diffing requires identity for a `Participant`, which is a value object with no id, and it would put change-tracking responsibility in the store — the very thing ADR-0007 D5 placed in the coordinator. Rewriting a handful of rows is cheap and has one obvious meaning.
 
 *Why a transaction*: between the `DELETE` and the last `INSERT` the session has no participants. A concurrent `GetAsync` must not observe that. The upsert satisfies ADR-0007's obligation that `SaveAsync` never fails because a session does or does not already exist.
+
+`SaveFrameAsync` follows the same shape — upsert the `ContestFrames` row, delete and reinsert `ContestModifiers`, in one transaction.
+
+**The two saves are separate calls, and that is a deliberate limit.** ADR-0010 D4 puts both ports on one class so that a single transaction *can* cover a session and its frame, and within one call it does. It does not make `SaveAsync` and `SaveFrameAsync` atomic with each other, because the coordinator and the hub call them at different moments for different reasons. What the shared class buys is one database and one connection, so the two writes cannot end up in different places or different files — not a distributed transaction across two calls. A crash between them can still leave a saved session whose frame is one step behind; the frame is re-derivable by reframing, and that is the same exposure the application has today.
 
 ### D5. A connection per operation; the store holds only a connection string
 
@@ -141,7 +176,9 @@ The store round-trips what it was given, including each participant's `Connectio
 
 *Why*: ADR-0007 makes the store an information holder that decides nothing. A store that edited the data it was handed would be making a judgement about the meaning of a field — and it is not the store's judgement to make. The alternative, storing an empty string, replaces a value that is *known to be stale* with one that is *silently wrong*, which is worse.
 
-**What this means, stated plainly**: a session reloaded after a restart is correct as data — its id, its GM, its players, their names, its state — and its connection ids point at connections that no longer exist. Nobody can be messaged through a reloaded session until they reconnect and are re-associated. **Reconnection is out of scope** for this spec, so today a reloaded session is durable history rather than a resumable game. Closing that gap is a separate piece of work and needs its own requirement.
+**What this means, stated plainly**: a session reloaded after a restart is correct as data — its id, its GM, its players, their names, its state — **and now its contest frame too**, since ADR-0010 brought frame storage into this module. What does not survive is the connections: every stored `ConnectionId` points at a SignalR connection that no longer exists. Nobody can be messaged through a reloaded session until they reconnect and are re-associated.
+
+So the gap has narrowed but not closed. Before ADR-0010 a restored session was missing its contest entirely and could only answer *"No contest has been framed"*. Now the game state is whole and only the transport is dead. **Reconnection remains out of scope**, so a reloaded session is still not a resumable game — but it is now one requirement away from being one, rather than two.
 
 ### Architecture Overview
 
@@ -165,6 +202,7 @@ The store round-trips what it was given, including each participant's `Connectio
 
    Save:  Session ──► rows  ──► [ transaction: upsert + delete + insert ]
    Get:   rows    ──► Session.Rehydrate(id, gm, players, state)   ← a copy, always
+   ... and the same for ContestFrame, over the same database and connection
 ```
 
 ### Key Components
@@ -177,8 +215,8 @@ The store round-trips what it was given, including each participant's `Connectio
 
 **`SessionRecordMapper`** (Role: Interfacer)
 
-- **Knowing**: how a `Session` corresponds to rows in two tables, and how enums are spelled
-- **Doing**: turning a session into rows and rows back into a session via `Session.Rehydrate`
+- **Knowing**: how a `Session` and a `ContestFrame` correspond to rows, and how enums are spelled
+- **Doing**: turning them into rows and back via `Session.Rehydrate` and `ContestFrame.Rehydrate`
 - **Deciding**: nothing
 
 **`SqliteSessionStoreInitialiser`** (Role: Service Provider — an `IHostedService`)
@@ -213,7 +251,8 @@ No behavioural change to existing code. This module is additive.
 ### Negative
 
 - **Hand-written mapping is hand-maintained.** Adding a field to `Session` means touching the schema, the writer, and the reader, with nothing to remind you.
-- **A reloaded session is not yet a resumable game** (D8). The spec's title promises more than the spec's scope delivers, and the gap is reconnection.
+- **A reloaded session is not yet a resumable game** (D8). The spec's title still promises more than its scope delivers, though ADR-0010 reduced the gap to reconnection alone.
+- **The schema is four tables, not two.** Hand-written mapping grows with it, and `ContestFrame`'s nullable player side is the fiddliest part of it.
 - **Whole-aggregate rewriting on every save** is wasteful in principle, though not at this size.
 - **The store is now on a supported path through the application**, per ADR-0008 D4, so its failure modes are the host's problem too: a bad connection string or an unwritable directory fails startup rather than a test.
 - **SQLite is single-writer.** This store makes sessions durable; it does not make them shareable across servers, which is the other half of why the port exists.

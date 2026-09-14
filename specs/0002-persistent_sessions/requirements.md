@@ -59,16 +59,18 @@ The table above is the issue's, and it assumes **one** store module called `Sess
 | Module | Ce | Ca | I | note |
 |---|---|---|---|---|
 | Session | 0 | **3** | 0.00 | Ca 1 → 3: Web, and both stores |
-| InMemorySessionStore | 1 | 1 | 0.50 | referenced by Web |
-| SqliteSessionStore | 1 | 1 | 0.50 | referenced by Web |
+| Framing | 0 | **5** | 0.00 | Ca 3 → 5: both stores now reference it (FR14) |
+| InMemorySessionStore | 2 | 1 | 0.67 | Session and Framing |
+| SqliteSessionStore | 2 | 1 | 0.67 | Session and Framing |
 | Web | **7** | 0 | 1.00 | was 6 in the issue's table |
 
-Two corrections to the published figures, both to be carried back to issue #2:
+Three corrections to the published figures, all to be carried back to issue #2:
 
 - **`Session`'s Ca is 3, not 2.** Both stores reference it, so the stability claim holds more strongly than the issue predicted. Its Ce stays 0.
 - **`Web`'s Ce is 7, not 6.** The composition root references both stores because it chooses between them (FR13). `Web` is already at I = 1.00 and cannot become less stable; absorbing knowledge of every implementation so that no other module has to is what a composition root is for.
+- **`Framing` is a second Ce-0 module declaring a port**, at Ca 5 the most depended-upon module in the solution (FR14). It appears in the issue's table as a module with no port at all.
 
-Settled in [ADR-0008](../../docs/adr/0008-session-store-module-composition.md) D4, which records why the demonstration was judged worth the figure.
+Settled in [ADR-0008](../../docs/adr/0008-session-store-module-composition.md) D4 and [ADR-0010](../../docs/adr/0010-contest-frame-storage-port.md).
 
 ## Requirements
 
@@ -114,6 +116,14 @@ A store module must be able to turn stored data back into a `Session` carrying i
 **FR12 — The two stores are interchangeable**
 Both stores satisfy the same behavioural contract, and a suite of contract tests is run against each. Substituting one for the other requires no change in `QuestWorlds.Session`, in `ISessionCoordinator`, or in `ContestHub` — only a different registration at the composition root.
 
+**FR14 — A session's contest frame is stored with it**
+The contest frame port moves out of `QuestWorlds.Web` into `QuestWorlds.Framing` as `IAmAContestFrameStore`, async like the session port. Each store module implements **both** ports from one class over one database, so a restart restores a session and its contest together or not at all.
+
+> Added during design review. FR13 made the SQLite store a supported configuration of the running app; with the frame store still an in-memory dictionary in the web process, a restart mid-contest restored a session whose state said *submit your ability* into an app that could only answer *"No contest has been framed"*. Persisting half a contest is worse than persisting none of it. See [ADR-0010](../../docs/adr/0010-contest-frame-storage-port.md).
+
+**FR15 — Stores return copies, never their stored instance**
+Both stores return a copy from every read, so the coordinator's obligation to save what it changes (FR8) is enforced identically in every configuration. Without this the in-memory store — the default — would be the one place a missing save is invisible.
+
 **FR13 — `QuestWorlds.Web` chooses its store by configuration, defaulting to in-memory**
 The web app references both stores and selects one at startup from `SessionStore:Provider`. With the setting absent it uses the in-memory store, so a user who changes nothing sees no change. Setting it to `Sqlite` makes sessions survive a restart. An unrecognised value fails startup rather than falling back.
 
@@ -146,7 +156,7 @@ The web app references both stores and selects one at startup from `SessionStore
 - ~~Wiring the SQLite store into `QuestWorlds.Web`, or a configuration switch to choose a store at startup.~~ **No longer out of scope** — FR13 as amended. What remains out of scope is any store selectable per request or per session; the choice is made once, at startup.
 - Session expiry, eviction, TTL, or cleanup of abandoned sessions.
 - Reconnection behaviour: reattaching a participant after a dropped SignalR connection, and the `ConnectionId`-refresh problem that comes with it.
-- Making `IContestFrameStore` (in `QuestWorlds.Web`) a module of its own, or unifying it with session storage.
+- ~~Making `IContestFrameStore` (in `QuestWorlds.Web`) a module of its own, or unifying it with session storage.~~ **No longer out of scope** — FR14. Design review found that FR13 made SQLite a supported configuration, and a restart then restored a session without its contest, which is worse than not persisting at all.
 - Exporting `ISessionIdGenerator`, or any other `Session` internal, as a substitution point.
 - ~~Changing `ISessionCoordinator`'s contract as seen by `QuestWorlds.Web`.~~ **No longer out of scope** — see FR10. An async port forces an async coordinator.
 - Multi-server SignalR concerns such as a backplane.
@@ -171,7 +181,12 @@ From the issue's acceptance list, plus what FR8/FR9 add:
 - [ ] **AC12** — A session written through the SQLite store is readable by a *different* store instance over the same database — the store-and-reload path a restart takes. This is the criterion the in-memory store cannot satisfy and the spec's title depends on.
 - [ ] **AC13** — Substituting SQLite for in-memory requires no change to `QuestWorlds.Session`, `ISessionCoordinator`, or `ContestHub` — only a different registration.
 - [ ] **AC14** — `ISessionCoordinator` and the port are async, and no implementation blocks on a task (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`).
-- [ ] **AC15** — The whole solution builds and every existing test across all test projects passes.
+- [ ] **AC15** — `IAmAContestFrameStore` is declared in `QuestWorlds.Framing`, which keeps **zero** `ProjectReference` elements, and `QuestWorlds.Web` contains no storage implementation of any kind.
+- [ ] **AC16** — One store instance serves both ports: a frame saved via `IAmAContestFrameStore` is visible to a store resolved as `IAmASessionStore`, and vice versa. (Registering the class twice would silently give two instances; this is the criterion that catches it.)
+- [ ] **AC17** — With the SQLite store, a session **and its in-progress contest frame** both survive a simulated restart, read back by a different store instance over the same database.
+- [ ] **AC18** — Removing a session removes its frame and that frame's modifiers, leaving no orphaned rows.
+- [ ] **AC19** — `GetAsync` on **both** stores returns a copy: mutating the returned session without saving leaves the stored session unchanged.
+- [ ] **AC20** — The whole solution builds and every existing test across all test projects passes.
 
 **Testing approach**: xUnit, following the repository's existing `When_<scenario>_should_<expectation>` class-per-scenario convention, with builders for arrangement. Three test projects are involved:
 
@@ -232,6 +247,8 @@ The three questions this document left open have been answered, and one answer w
 | Does it get its own test project? | **Yes**, one per store module, now that each is a public module rather than an internal detail. | C3 |
 | Is the SQLite store built now? | **Yes** — it ships in this spec, not a later one. | FR11, AC10–AC13 |
 | Does `Web` switch between stores? | **Yes**, by configuration, defaulting to in-memory. Reverses an earlier decision; costs `Web` Ce 6 → 7. | FR13, AC7a/b, ADR-0008 D4 |
+| Is the contest frame stored too? | **Yes** — found in design review. Its port moves to `QuestWorlds.Framing`; one store class implements both ports. | FR14, AC15–AC18, ADR-0010 |
+| Do stores return copies? | **Yes**, both of them, so a missing save fails in every configuration rather than only under SQLite. | FR15, AC19, ADR-0008 D7 |
 
 **Issue #2 does not yet describe this scope.** It says the deliverable is the port plus the in-memory module, with a persistent store as a later second implementation; FR11 brings that forward. The issue should be updated before implementation starts, and its coupling table reviewed against *Consequence for the coupling table* above.
 

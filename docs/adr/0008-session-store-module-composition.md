@@ -32,8 +32,10 @@ ADR-0007 exports `IAmASessionStore` and removes every implementation of it from 
 
 | Project | Contains | References |
 |---|---|---|
-| `src/QuestWorlds.InMemorySessionStore` | `InMemorySessionStore` | `QuestWorlds.Session` |
-| `src/QuestWorlds.SqliteSessionStore` | `SqliteSessionStore` | `QuestWorlds.Session`, `Microsoft.Data.Sqlite` |
+| `src/QuestWorlds.InMemorySessionStore` | `InMemorySessionStore` | `QuestWorlds.Session`, `QuestWorlds.Framing` |
+| `src/QuestWorlds.SqliteSessionStore` | `SqliteSessionStore` | `QuestWorlds.Session`, `QuestWorlds.Framing`, `Microsoft.Data.Sqlite` |
+
+Each holds a session **and its contest frame**, implementing one port from each of the two modules — see [ADR-0010](0010-contest-frame-storage-port.md), which also explains why the names do not change.
 
 Each is a peer implementation of `IAmASessionStore`. Neither is a default, and neither is privileged in `QuestWorlds.Session`, which knows about neither.
 
@@ -51,7 +53,7 @@ services.AddInMemorySessionStore();
 services.AddSqliteSessionStore(connectionString);
 ```
 
-Both register their implementation as a **singleton**. The in-memory store must be, because it *is* the state. The SQLite store may be, because it holds only a connection string (see ADR-0009).
+Both register their implementation as a **singleton**, forwarded to the same instance behind both storage ports — see [ADR-0010](0010-contest-frame-storage-port.md) D4, which is where registering it twice would quietly give you two stores. The in-memory store must be a singleton, because it *is* the state. The SQLite store may be, because it holds only a connection string (see ADR-0009).
 
 `AddSessionModule()` registers `ISessionCoordinator` and the internal id generator, and **no store**.
 
@@ -122,8 +124,7 @@ The obligations in ADR-0007 are shared, so the tests for them are written once:
 
 ```
 tests/QuestWorlds.SessionStore.ContractTests/   (test-support library, not a module)
-    SessionStoreContract.cs                     abstract, holds every contract test
-    CopyReturningSessionStore.cs                the double that makes write-back observable
+    SessionStoreContract.cs                     abstract; every obligation from ADR-0007 and ADR-0010
 
 tests/QuestWorlds.InMemorySessionStore.Tests/
     When_an_in_memory_store_is_used_as_a_session_store.cs
@@ -135,7 +136,9 @@ tests/QuestWorlds.SqliteSessionStore.Tests/
     ... plus what only SQLite has: reload across instances, schema creation
 ```
 
-`SessionStoreContract` is an abstract xUnit class with one abstract member — `protected abstract IAmASessionStore CreateStore()`. xUnit discovers `[Fact]`s on the concrete subclass, so each store's test project runs the full suite under its own name.
+`SessionStoreContract` is an abstract xUnit class with one abstract member — `protected abstract TStore CreateStore()` returning something that implements both `IAmASessionStore` and `IAmAContestFrameStore`. xUnit discovers `[Fact]`s on the concrete subclass, so each store's test project runs the full suite under its own name. Covering both ports in one suite is what enforces ADR-0010's rule that a session and its frame stay consistent.
+
+**`QuestWorlds.Session.Tests` references `QuestWorlds.InMemorySessionStore`** and uses the real store — for `SessionCoordinatorBuilder` (D6) and for the write-back tests. It needs no test double of its own, because D7 makes the real in-memory store return copies. The `CopyReturningSessionStore` an earlier draft of this ADR proposed is not built.
 
 *Why a shared project rather than linked source files or one combined test project*: linked files duplicate the suite in two places at build time and make a failure ambiguous about which store failed. One combined project forces the SQLite dependency on anyone running the in-memory tests. A referenced abstract base keeps one copy of the rules and one clear answer to "which store broke".
 
@@ -148,6 +151,16 @@ public static ISessionCoordinator CreateCoordinator(IAmASessionStore store);
 ```
 
 The no-argument form is removed, as it can no longer construct a store. `SessionCoordinatorBuilder` in `QuestWorlds.Session.Tests` passes an in-memory store, which is the only change expected to existing tests.
+
+### D7. The in-memory store returns copies, like every other store
+
+`InMemorySessionStore.GetAsync` returns a **copy**, built with `Session.Rehydrate` (ADR-0007 D6). It does not hand back the object its dictionary holds.
+
+*Why*: ADR-0007 D5 makes the coordinator responsible for saving what it changes, and a store that returns live references makes forgetting invisible. The default development configuration would then be the one configuration where the bug cannot be observed — so a missing `SaveAsync` would pass every test and every manual check, and fail only in the SQLite deployment. Making the in-memory store copy means **both** stores behave the same way, and the bug class is eliminated rather than tested for.
+
+*What it costs*: one small allocation per `GetAsync` — a session is an id, a GM, a handful of players and an enum. Against that, the previous design had to introduce a `CopyReturningSessionStore` test double purely to make the behaviour observable. **That double is no longer needed and is not built**; the real store does the job. *Do not add new types without necessity.*
+
+*A consequence worth stating*: with copies, `coordinator.GetSession(id)` followed by a mutation no longer changes anything unless the coordinator saves. That is the whole point, and it is why the fix in ADR-0007's implementation step 4 must land in the same change as this decision — otherwise `JoinSession` starts losing players in the default configuration, not just the SQLite one.
 
 ### Architecture Overview
 
@@ -185,32 +198,34 @@ Resulting figures:
 | Module | Ce | Ca | I | note |
 |---|---|---|---|---|
 | Session | 0 | 3 | 0.00 | Web + both stores |
-| InMemorySessionStore | 1 | 1 | 0.50 | referenced by Web |
-| SqliteSessionStore | 1 | 1 | 0.50 | referenced by Web |
+| Framing | 0 | 5 | 0.00 | Ca 3 → 5: both stores now reference it too (ADR-0010) |
+| InMemorySessionStore | 2 | 1 | 0.67 | Session and Framing |
+| SqliteSessionStore | 2 | 1 | 0.67 | Session and Framing |
 | Web | **7** | 0 | 1.00 | **was 6 in issue #2's table** |
 
-Two corrections to the published table, both to be carried back to issue #2:
+Three corrections to the published table, all to be carried back to issue #2:
 
 - `Session`'s Ca reaches **3**, not the 2 the issue predicted, because both stores reference it. The stability claim holds more strongly than advertised.
 - `Web`'s Ce becomes **7**, not 6, because D4 references both stores. `Web` is the composition root; its instability is already 1.00 and cannot get worse. This is the module that is *supposed* to absorb knowledge of every implementation so that no other module has to.
+- `Framing` joins `Session` as a **Ce-0 module that declares a port** (ADR-0010), and becomes the most depended-upon module in the solution at Ca 5. Two modules arriving at the same shape independently is a better argument than one.
 
 ### Key Components
 
-**`InMemorySessionStore`** (Role: Information Holder)
+**`InMemorySessionStore`** (Role: Information Holder, implementing both storage ports)
 
-- **Knowing**: the sessions held in a `ConcurrentDictionary`
-- **Doing**: save, get, remove
+- **Knowing**: the sessions and frames held in `ConcurrentDictionary`s
+- **Doing**: save, get, remove — **returning copies, never the stored instance** (D7)
 - **Deciding**: nothing
 
-**`SqliteSessionStore`** (Role: Information Holder) — detail in ADR-0009
+**`SqliteSessionStore`** (Role: Information Holder, implementing both storage ports) — detail in ADR-0009
 
-- **Knowing**: how to reach the database, and how a session maps to rows
+- **Knowing**: how to reach the database, and how a session and its frame map to rows
 - **Doing**: save, get, remove
 - **Deciding**: nothing
 
 **`SessionStoreContract`** (Role: Structurer — test support)
 
-- **Knowing**: every obligation ADR-0007 places on a store
+- **Knowing**: every obligation ADR-0007 and ADR-0010 place on a store
 - **Doing**: exercising those obligations against whatever store a subclass supplies
 - **Deciding**: nothing
 
@@ -220,7 +235,7 @@ Two corrections to the published table, both to be carried back to issue #2:
 |---|---|---|
 | 1 | Create the two store projects and two test projects; add all four to `QuestWorlds.slnx` | Structural |
 | 2 | Move `InMemorySessionRepository` out of `QuestWorlds.Session` into its own module as `InMemorySessionStore`, public | Structural |
-| 3 | Create `QuestWorlds.SessionStore.ContractTests`; write the contract suite; make the in-memory store pass it | Structural + new tests |
+| 3 | Create `QuestWorlds.SessionStore.ContractTests`; write the contract suite; make the in-memory store pass it, returning copies (D7) | Structural + new tests |
 | 4 | Remove the store registration from `AddSessionModule()`; add `AddInMemorySessionStore()`; add `AddConfiguredSessionStore` and the `SessionStore` settings to `QuestWorlds.Web`; enable `ValidateOnBuild` | Structural |
 | 5 | Replace `CreateCoordinator()` with `CreateCoordinator(store)`; update `SessionCoordinatorBuilder` | Structural |
 
@@ -235,6 +250,7 @@ All structural. The behavioural change in this feature is the write-back fix in 
 - **The choice of store is visible at the composition root**, in one line, next to the other module registrations.
 - **The substitution can be performed, not just read about.** Set one configuration value, restart, and the session is still there. For a repository people reach after the talk, a demonstration beats an assertion.
 - **A forgotten store fails at startup** with a message naming the missing type; a mistyped one fails naming the bad value.
+- **Both stores behave identically** (D7). The default development configuration is no longer the one place where a missing save is invisible, and a test double exists to be deleted rather than written.
 
 ### Negative
 
@@ -242,6 +258,8 @@ All structural. The behavioural change in this feature is the write-back fix in 
 - **Nothing forces a host to register a store at compile time.** D3 catches it at startup, not at build.
 - **`Web`'s Ce goes from 6 to 7**, contradicting the coupling table published in issue #2. The table needs correcting, and anyone who has already screenshotted it has a stale figure.
 - **The default path is now one indirection deeper.** Reading `Program.cs` no longer tells you which store is in use; you also have to read the configuration.
+- **The in-memory store allocates on every read** (D7), where previously it handed back a reference. Immaterial at this size, but it is a real change to the cheapest store's cost.
+- **Each store module now depends on two modules**, not one, since it implements a port from each (ADR-0010). Ce 1 → 2.
 - **A new test-support project sits outside the module story** and needs explaining if the solution layout appears on a slide.
 
 ### Risks and Mitigations
@@ -251,6 +269,7 @@ All structural. The behavioural change in this feature is the write-back fix in 
 | A host registers two stores and gets a surprising winner | Last registration wins, per D2, which is predictable; `ValidateOnBuild` does not catch it, so document the intent that exactly one store extension is called |
 | The contract suite drifts into testing one store's internals | It may only use `IAmASessionStore` and `QuestWorlds.Session`'s public types; it has no reference to either store project |
 | A contract obligation is added to the suite but only the in-memory store is run | Both test projects inherit the same base, so a new `[Fact]` appears in both automatically |
+| D7 lands before ADR-0007's write-back fix, so `JoinSession` starts losing players in the default configuration | They are one change and must be sequenced together; the tasks list must not separate them |
 | `ValidateOnBuild` slows startup or surfaces unrelated pre-existing registration problems | It runs once at startup; if it reveals other problems, those are real and worth fixing |
 | A mistyped provider value silently yields in-memory, and sessions vanish on a restart that was meant to preserve them | D4 throws on any unrecognised value rather than falling back |
 | A deployment sets `Sqlite` but no connection string | The connection string is read eagerly during registration and its absence fails startup, not the first save |
