@@ -21,7 +21,7 @@ ADR-0007 exports `IAmASessionStore` and removes every implementation of it from 
 - **`QuestWorlds.Session` must stay at Ce 0.** It declares the port and references nothing. Any composition scheme that makes `Session` reference a store is disqualified, however convenient.
 - **Removing the default removes a safety net.** Today `AddSessionModule()` always yields a working system. After ADR-0007 it yields one only if the host also registers a store. A host that forgets must find out quickly and legibly.
 - **Two implementations are only interchangeable if something checks.** "Both satisfy the same contract" is an assertion until one suite of tests runs against both. The obligations ADR-0007 wrote into the contract — upsert, copies, idempotent removal — are exactly the ones a single implementation will accidentally satisfy and a second will not.
-- **The coupling figures are published.** Issue #2's table is talk material. Composition decides whether `Web`'s Ce stays 6 or becomes 7.
+- **The coupling figures are published, and the demo is the artefact.** Issue #2's table is talk material, and composition decides whether `Web`'s Ce stays 6 or becomes 7. But people reach this repository after the talk, without a speaker to narrate it, so a substitution they can *perform* is worth more than a figure that stays round.
 - **Test projects are not modules.** The coupling table counts production modules. A test-support project that both store test projects share does not belong in it, and should not be allowed to blur what "module" means in a talk about modules.
 
 ## Decision
@@ -75,16 +75,46 @@ The resulting message names the missing service: *Unable to resolve service for 
 
 *Why not a fluent builder that makes a store mandatory at compile time* — `AddSessionModule().WithStore(...)` — *which would be better still*: it adds a builder type and a second way to register the module, for a mistake that startup validation already catches on the first run. *Do not add new types without necessity*; *there should be one obvious way to do it*.
 
-### D4. `QuestWorlds.Web` registers the in-memory store only
+### D4. `QuestWorlds.Web` references both stores and chooses by configuration
 
 ```csharp
+// Program.cs — the composition root, and the only place that knows both stores exist
 builder.Services.AddSessionModule();
-builder.Services.AddInMemorySessionStore();
+builder.Services.AddConfiguredSessionStore(builder.Configuration);
 ```
 
-The running application behaves exactly as it does today, and `QuestWorlds.Web` does not reference `QuestWorlds.SqliteSessionStore` at all.
+```csharp
+// QuestWorlds.Web — internal; keeps Program.cs a list of registrations
+internal static IServiceCollection AddConfiguredSessionStore(
+    this IServiceCollection services, IConfiguration configuration)
+{
+    var provider = configuration.GetValue("SessionStore:Provider", "InMemory");
 
-*Why not reference both and choose by configuration*: it is tempting, because flipping a setting and watching sessions survive a restart is a better demo than a passing test. It costs `Web` a project reference it does not use in its default configuration — Ce 6 → 7 — and the issue's published coupling table says 6. The cheaper option is taken here; the table stays true. If the demo turns out to be worth more than the figure, this is a one-line reversal and should get its own short ADR rather than being changed quietly.
+    return provider switch
+    {
+        "InMemory" => services.AddInMemorySessionStore(),
+        "Sqlite"   => services.AddSqliteSessionStore(SqliteConnectionString(configuration)),
+        _          => throw new InvalidOperationException(
+                          $"Unknown SessionStore:Provider '{provider}'. Expected 'InMemory' or 'Sqlite'.")
+    };
+}
+```
+
+Behaviour follows three rules:
+
+| Configuration | Result |
+|---|---|
+| absent | In-memory — today's behaviour, unchanged for anyone who does nothing |
+| `SessionStore:Provider = "Sqlite"` | SQLite, using `ConnectionStrings:SessionStore` |
+| anything else | Startup fails, naming the bad value and the valid ones |
+
+*Why the unknown case throws rather than falling back to in-memory*: a typo in a setting must not silently produce a server that loses sessions on restart while appearing to be configured not to. Failing loudly at startup is the whole point of having the switch in one place.
+
+*Why an internal extension in `QuestWorlds.Web` rather than inline in `Program.cs`*: it keeps the composition root a flat list of registrations, per *avoid more than one level of indentation in a method*. It is `internal` because choosing a store is this host's business and not a reusable abstraction — a shared "store chooser" would have to reference every store that exists, which is how a composition root leaks into a library.
+
+*What it costs*: `QuestWorlds.Web` gains a project reference it does not use in its default configuration, taking its Ce from 6 to **7**. Issue #2's published coupling table says 6 and will need correcting.
+
+*Why it is worth paying*: people arrive at this repository **after** the talk, without the speaker. A passing test asserts that the seam works; changing one setting, restarting, and finding the session still there demonstrates it. The demonstration is the artefact's purpose, and one honest project reference at the composition root — which is the one place in a system that is *supposed* to know about every implementation — is a fair price. A composition root's job is to be unstable so that nothing else has to be.
 
 ### D5. One contract suite, run against both stores
 
@@ -122,36 +152,47 @@ The no-argument form is removed, as it can no longer construct a store. `Session
 ### Architecture Overview
 
 ```
-                        composition root
-        ┌──────────────────────────────────────────────┐
-        │              QuestWorlds.Web                 │
-        │   AddSessionModule()                         │
-        │   AddInMemorySessionStore()   ← the choice   │
-        └───────┬──────────────────────────┬───────────┘
-                │                          │
-                ▼                          ▼
-     ┌─────────────────────┐   ┌──────────────────────────────┐
-     │ QuestWorlds.Session │◄──┤ QuestWorlds.InMemorySessionStore │
-     │                     │   └──────────────────────────────┘
-     │  ISessionCoordinator│
-     │  IAmASessionStore   │◄──┬──────────────────────────────┐
-     │                     │   │ QuestWorlds.SqliteSessionStore │
-     │  Ce = 0             │   └──────────────────────────────┘
-     └─────────────────────┘        not referenced by Web
+                          composition root
+        ┌────────────────────────────────────────────────────┐
+        │                  QuestWorlds.Web                   │
+        │   AddSessionModule()                               │
+        │   AddConfiguredSessionStore(configuration)         │
+        │        │                                           │
+        │        └── SessionStore:Provider ──┬── "InMemory"  │
+        │                                    └── "Sqlite"    │
+        └────────┬───────────────────────────────┬───────────┘
+                 │ references both               │
+                 ▼                               ▼
+   ┌──────────────────────────────────┐  ┌────────────────────────────────┐
+   │ QuestWorlds.InMemorySessionStore │  │ QuestWorlds.SqliteSessionStore │
+   └────────────────┬─────────────────┘  └───────────────┬────────────────┘
+                    │        implements IAmASessionStore │
+                    └───────────────┬────────────────────┘
+                                    ▼
+                     ┌─────────────────────────────┐
+                     │ QuestWorlds.Session         │
+                     │   ISessionCoordinator       │
+                     │   IAmASessionStore          │
+                     │   Ce = 0                    │
+                     └─────────────────────────────┘
 
    Both stores depend on Session. Session depends on neither.
+   Web depends on both, and is the only thing that does.
 ```
 
-Resulting figures, with `Web` referencing one store:
+Resulting figures:
 
 | Module | Ce | Ca | I | note |
 |---|---|---|---|---|
 | Session | 0 | 3 | 0.00 | Web + both stores |
 | InMemorySessionStore | 1 | 1 | 0.50 | referenced by Web |
-| SqliteSessionStore | 1 | 0 | 1.00 | referenced by its tests only |
-| Web | 6 | 0 | 1.00 | unchanged from issue #2's table |
+| SqliteSessionStore | 1 | 1 | 0.50 | referenced by Web |
+| Web | **7** | 0 | 1.00 | **was 6 in issue #2's table** |
 
-`Session`'s Ca reaches 3 rather than the 2 the issue predicted, because both stores reference it. The stability claim holds more strongly than advertised.
+Two corrections to the published table, both to be carried back to issue #2:
+
+- `Session`'s Ca reaches **3**, not the 2 the issue predicted, because both stores reference it. The stability claim holds more strongly than advertised.
+- `Web`'s Ce becomes **7**, not 6, because D4 references both stores. `Web` is the composition root; its instability is already 1.00 and cannot get worse. This is the module that is *supposed* to absorb knowledge of every implementation so that no other module has to.
 
 ### Key Components
 
@@ -180,7 +221,7 @@ Resulting figures, with `Web` referencing one store:
 | 1 | Create the two store projects and two test projects; add all four to `QuestWorlds.slnx` | Structural |
 | 2 | Move `InMemorySessionRepository` out of `QuestWorlds.Session` into its own module as `InMemorySessionStore`, public | Structural |
 | 3 | Create `QuestWorlds.SessionStore.ContractTests`; write the contract suite; make the in-memory store pass it | Structural + new tests |
-| 4 | Remove the store registration from `AddSessionModule()`; add `AddInMemorySessionStore()`; wire `QuestWorlds.Web`; enable `ValidateOnBuild` | Structural |
+| 4 | Remove the store registration from `AddSessionModule()`; add `AddInMemorySessionStore()`; add `AddConfiguredSessionStore` and the `SessionStore` settings to `QuestWorlds.Web`; enable `ValidateOnBuild` | Structural |
 | 5 | Replace `CreateCoordinator()` with `CreateCoordinator(store)`; update `SessionCoordinatorBuilder` | Structural |
 
 All structural. The behavioural change in this feature is the write-back fix in ADR-0007.
@@ -192,14 +233,15 @@ All structural. The behavioural change in this feature is the write-back fix in 
 - **A deployment takes only the store it uses.** Nobody pays for SQLite to use a dictionary.
 - **"Interchangeable" is checked rather than asserted.** One suite, two stores, one place to add a rule when the contract grows.
 - **The choice of store is visible at the composition root**, in one line, next to the other module registrations.
-- **The published coupling figure survives.** `Web` stays at Ce 6.
-- **A forgotten store fails at startup** with a message naming the missing type.
+- **The substitution can be performed, not just read about.** Set one configuration value, restart, and the session is still there. For a repository people reach after the talk, a demonstration beats an assertion.
+- **A forgotten store fails at startup** with a message naming the missing type; a mistyped one fails naming the bad value.
 
 ### Negative
 
 - **The solution gains four projects** — two modules and two test projects — for a feature whose production code is a few hundred lines.
 - **Nothing forces a host to register a store at compile time.** D3 catches it at startup, not at build.
-- **The SQLite store is not exercised by the running application.** It is proven by tests only, which is a weaker demonstration than a working deployment.
+- **`Web`'s Ce goes from 6 to 7**, contradicting the coupling table published in issue #2. The table needs correcting, and anyone who has already screenshotted it has a stale figure.
+- **The default path is now one indirection deeper.** Reading `Program.cs` no longer tells you which store is in use; you also have to read the configuration.
 - **A new test-support project sits outside the module story** and needs explaining if the solution layout appears on a slide.
 
 ### Risks and Mitigations
@@ -210,6 +252,8 @@ All structural. The behavioural change in this feature is the write-back fix in 
 | The contract suite drifts into testing one store's internals | It may only use `IAmASessionStore` and `QuestWorlds.Session`'s public types; it has no reference to either store project |
 | A contract obligation is added to the suite but only the in-memory store is run | Both test projects inherit the same base, so a new `[Fact]` appears in both automatically |
 | `ValidateOnBuild` slows startup or surfaces unrelated pre-existing registration problems | It runs once at startup; if it reveals other problems, those are real and worth fixing |
+| A mistyped provider value silently yields in-memory, and sessions vanish on a restart that was meant to preserve them | D4 throws on any unrecognised value rather than falling back |
+| A deployment sets `Sqlite` but no connection string | The connection string is read eagerly during registration and its absence fails startup, not the first save |
 
 ## Alternatives Considered
 
@@ -221,9 +265,9 @@ This was the original shape of issue #2 and of the first draft of the requiremen
 
 Fewer projects, one registration extension with a parameter. Rejected: every host would take the SQLite dependency regardless of the store it uses, which defeats the substitution the feature exists to provide.
 
-### 3. `QuestWorlds.Web` references both stores and chooses by configuration
+### 3. `QuestWorlds.Web` registers the in-memory store only
 
-Buys a live demo — change a setting, restart, sessions survive. Rejected for now: it costs `Web` a reference to a store it does not use by default, moving a published figure from 6 to 7. See D4; this is a cheap decision to reverse.
+The cheaper option, and the one this ADR originally took: `Web` references one store, its Ce stays at the 6 issue #2 publishes, and SQLite is proven by its test suite. Rejected because a passing test asserts the seam works where a working configuration switch demonstrates it, and this repository is read after the talk by people without a speaker to fill the gap. The figure it protects belongs to the composition root, which is the module whose instability is least interesting — `Web` is already at I = 1.00 either way.
 
 ### 4. One combined store test project
 

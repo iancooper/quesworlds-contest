@@ -282,7 +282,7 @@ Adds nothing to `Session`, and satisfies the requirement's assumption A1 literal
 | Module layout, project names, registration at the composition root, where the shared contract-test suite lives | Independent of the port's shape; reversible without touching the contract |
 | SQLite library, schema, `Session`-to-rows mapping, database file location, connection lifetime | Entirely behind the port; a different answer changes nothing in `QuestWorlds.Session` |
 | What a reloaded session means, given that its `ConnectionId`s are stale after a restart (C6) | A question about reconnection semantics, not about storage |
-| Whether `QuestWorlds.Web` should reference both stores and choose by configuration | A composition-root decision; costs Ce 6 → 7 |
+| Whether `QuestWorlds.Web` should reference both stores and choose by configuration | A composition-root decision; costs Ce 6 → 7. **Resolved by [ADR-0008](0008-session-store-module-composition.md) D4: yes, by configuration, defaulting to in-memory** |
 | Optimistic concurrency on a session | Pre-existing, surfaced by this ADR, wider than it |
 
 ## References

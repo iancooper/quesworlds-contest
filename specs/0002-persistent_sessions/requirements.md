@@ -54,18 +54,21 @@ A module gains a substitutable dependency and its instability does not move, bec
 
 #### Consequence for the coupling table
 
-The table above is the issue's, and it assumes **one** store module called `SessionStore`. Two things move it. Per C4 the stores are named for their technology, so that row is really `InMemorySessionStore`; and per FR11 a second store ships in the same change. Because `QuestWorlds.Web` registers only the in-memory store (FR13), it references only that one, so **`Web`'s Ce stays 6 as the issue's table says**, and the new module simply appears as an extra row with no consumer in the app:
+The table above is the issue's, and it assumes **one** store module called `SessionStore`. Three things move it: per C4 the stores are named for their technology, per FR11 a second store ships in the same change, and per FR13 `QuestWorlds.Web` references both so it can switch between them.
 
 | Module | Ce | Ca | I | note |
 |---|---|---|---|---|
-| Session | 0 | 3 | 0.00 | Ca 1 → 3: Web, and both stores |
+| Session | 0 | **3** | 0.00 | Ca 1 → 3: Web, and both stores |
 | InMemorySessionStore | 1 | 1 | 0.50 | referenced by Web |
-| SqliteSessionStore | 1 | 0 | 1.00 | referenced by its tests only |
-| Web | 6 | 0 | 1.00 | unchanged from the issue's figure |
+| SqliteSessionStore | 1 | 1 | 0.50 | referenced by Web |
+| Web | **7** | 0 | 1.00 | was 6 in the issue's table |
 
-`Session`'s Ce stays 0 and its Ca improves further than the issue predicted — 1 → **3** rather than 1 → 2, because both stores reference it. The claim the talk makes gets stronger, not weaker.
+Two corrections to the published figures, both to be carried back to issue #2:
 
-> **Open for the ADR**: if `Web` referenced both stores and chose between them by configuration, `Web`'s Ce would become 7 and `SqliteSessionStore`'s Ca 1. That buys a live demo — flip a setting, sessions survive a restart — at the cost of the published figure. FR13 takes the cheaper option; the ADR may revisit it.
+- **`Session`'s Ca is 3, not 2.** Both stores reference it, so the stability claim holds more strongly than the issue predicted. Its Ce stays 0.
+- **`Web`'s Ce is 7, not 6.** The composition root references both stores because it chooses between them (FR13). `Web` is already at I = 1.00 and cannot become less stable; absorbing knowledge of every implementation so that no other module has to is what a composition root is for.
+
+Settled in [ADR-0008](../../docs/adr/0008-session-store-module-composition.md) D4, which records why the demonstration was judged worth the figure.
 
 ## Requirements
 
@@ -111,8 +114,10 @@ A store module must be able to turn stored data back into a `Session` carrying i
 **FR12 — The two stores are interchangeable**
 Both stores satisfy the same behavioural contract, and a suite of contract tests is run against each. Substituting one for the other requires no change in `QuestWorlds.Session`, in `ISessionCoordinator`, or in `ContestHub` — only a different registration at the composition root.
 
-**FR13 — `QuestWorlds.Web` keeps today's behaviour**
-The web app registers the in-memory store, so a user sees no change. `QuestWorlds.SqliteSessionStore` is proven by its own tests rather than by being wired into the running app.
+**FR13 — `QuestWorlds.Web` chooses its store by configuration, defaulting to in-memory**
+The web app references both stores and selects one at startup from `SessionStore:Provider`. With the setting absent it uses the in-memory store, so a user who changes nothing sees no change. Setting it to `Sqlite` makes sessions survive a restart. An unrecognised value fails startup rather than falling back.
+
+> Amended after the first approval of this document, which had `Web` registering the in-memory store only and the SQLite store proven by its tests alone. The reason for the change: people reach this repository *after* the talk, without a speaker, and a substitution they can perform is worth more than one they have to take on trust. It costs `Web` a project reference — Ce 6 → 7 — and that contradicts the coupling table published in issue #2. See ADR-0008 D4.
 
 ### Non-functional Requirements
 
@@ -138,7 +143,7 @@ The web app registers the in-memory store, so a user sees no change. `QuestWorld
 ### Out of Scope
 
 - ~~Writing an actual persistent store.~~ **No longer out of scope** — FR11 delivers `QuestWorlds.SqliteSessionStore`. Stores for other technologies (Redis, Cosmos, SQL Server, distributed cache) remain out of scope.
-- Wiring the SQLite store into `QuestWorlds.Web`, or a configuration switch to choose a store at startup. Web registers the in-memory store (FR13); see *Consequence for the coupling table*.
+- ~~Wiring the SQLite store into `QuestWorlds.Web`, or a configuration switch to choose a store at startup.~~ **No longer out of scope** — FR13 as amended. What remains out of scope is any store selectable per request or per session; the choice is made once, at startup.
 - Session expiry, eviction, TTL, or cleanup of abandoned sessions.
 - Reconnection behaviour: reattaching a participant after a dropped SignalR connection, and the `ConnectionId`-refresh problem that comes with it.
 - Making `IContestFrameStore` (in `QuestWorlds.Web`) a module of its own, or unifying it with session storage.
@@ -156,7 +161,9 @@ From the issue's acceptance list, plus what FR8/FR9 add:
 - [ ] **AC4** — A test project can supply its own `ISessionRepository` without `InternalsVisibleTo` and without touching `QuestWorlds.Session`.
 - [ ] **AC5** — `ISessionIdGenerator` remains `internal`.
 - [ ] **AC6** — The existing Session tests pass. They go through `SessionCoordinatorBuilder`, which calls the no-argument `CreateCoordinator()`; the builder passes the in-memory store instead. **That is the only change expected to existing tests.**
-- [ ] **AC7** — `QuestWorlds.Web` runs unchanged in behaviour: its composition root registers the in-memory store, and session handling works end to end as before.
+- [ ] **AC7** — `QuestWorlds.Web` runs unchanged in behaviour **with no configuration set**: it selects the in-memory store, and session handling works end to end as before.
+- [ ] **AC7a** — With `SessionStore:Provider = "Sqlite"`, the app starts, creates its schema, and serves a contest end to end.
+- [ ] **AC7b** — With `SessionStore:Provider` set to an unrecognised value, startup fails with a message naming the bad value and the valid ones.
 - [ ] **AC8** — With a substitute store that returns a *copy* on `Get` (mimicking an out-of-process adapter), a player who joins a session is still present when the session is next read. **This test fails today.**
 - [ ] **AC9** — A substitute store can reconstruct a `Session` with its id, GM, players, and state from data alone, using only `QuestWorlds.Session`'s public API.
 - [ ] **AC10** — `QuestWorlds.SqliteSessionStore` is its own module, references `QuestWorlds.Session`, and its SQLite dependency appears nowhere else.
@@ -223,8 +230,14 @@ The three questions this document left open have been answered, and one answer w
 | Sync or async port? | **Async.** The port is public and crosses a module boundary, so its shape is a published contract; async is what implementers expect. Ripples into `ISessionCoordinator` and `ContestHub`. | C2, FR10, AC14 |
 | What is the store module called? | **Named for its technology**: `QuestWorlds.InMemorySessionStore`, `QuestWorlds.SqliteSessionStore` — not the issue's generic `SessionStore`. | C4 |
 | Does it get its own test project? | **Yes**, one per store module, now that each is a public module rather than an internal detail. | C3 |
-| Is the SQLite store built now? | **Yes** — it ships in this spec, not a later one. `QuestWorlds.Web` still registers in-memory, so the running app is unchanged. | FR11, FR13, AC10–AC13 |
+| Is the SQLite store built now? | **Yes** — it ships in this spec, not a later one. | FR11, AC10–AC13 |
+| Does `Web` switch between stores? | **Yes**, by configuration, defaulting to in-memory. Reverses an earlier decision; costs `Web` Ce 6 → 7. | FR13, AC7a/b, ADR-0008 D4 |
 
 **Issue #2 does not yet describe this scope.** It says the deliverable is the port plus the in-memory module, with a persistent store as a later second implementation; FR11 brings that forward. The issue should be updated before implementation starts, and its coupling table reviewed against *Consequence for the coupling table* above.
 
-Still open for the ADR: SQLite library, schema, and database file location (C5); what a reloaded session means given stale `ConnectionId`s (C6); where the shared contract test suite lives; `Task` vs `ValueTask` and whether the port takes a `CancellationToken` (C2); and whether `Web` should reference both stores and switch by configuration.
+All of these are now settled in ADRs [0007](../../docs/adr/0007-session-storage-port.md), [0008](../../docs/adr/0008-session-store-module-composition.md) and [0009](../../docs/adr/0009-sqlite-session-store.md): the port's shape and naming, the module layout and contract-test suite, the SQLite library, schema and file location, and the store switch.
+
+Two things the ADRs record that this document should be read alongside:
+
+- **ADR-0007 D6 rejects assumption A1.** Rehydrating through `new` + `AddPlayer` + `TransitionTo` makes a store replay a domain rule to load a row, so `Session` gains an explicit `Rehydrate` factory. The public surface therefore grows by one interface **and one factory method**, amending the contract-minimalism NFR above.
+- **ADR-0009 D8 answers C6 bluntly.** A reloaded session is correct as data, but its `ConnectionId`s are dead — it is durable history, not a resumable game, until reconnection exists. That gap needs its own requirement.

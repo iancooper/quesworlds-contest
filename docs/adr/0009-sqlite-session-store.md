@@ -95,27 +95,45 @@ The database is opened in **WAL** mode so a reader is not blocked by a writer:
 PRAGMA journal_mode = WAL;
 ```
 
-### D6. The schema is created once, at startup, by an explicit call
+### D6. The schema is created once at startup, by a hosted service the module registers
 
 ```csharp
 // QuestWorlds.SqliteSessionStore
 public static IServiceCollection AddSqliteSessionStore(this IServiceCollection services, string connectionString);
-public static Task InitialiseSqliteSessionStoreAsync(this IServiceProvider services, CancellationToken ct = default);
+// also registers SqliteSessionStoreInitialiser : IHostedService
+
+// available directly for tests, which do not run a host
+public static Task InitialiseAsync(string connectionString, CancellationToken ct = default);
 ```
 
-The host calls the initialiser during startup. It runs the `CREATE TABLE IF NOT EXISTS` statements and sets WAL mode.
+`AddSqliteSessionStore` registers both the store and an `IHostedService` that runs the `CREATE TABLE IF NOT EXISTS` statements and sets WAL mode when the application starts.
 
-*Why not lazily on first use*: it would put a "have I initialised?" check, and the lock that protects it, on the hot path of every operation, to save one line at startup.
+*Why a hosted service rather than an explicit call from the host*: ADR-0008 D4 selects the store by configuration, so an explicit call would have to be guarded by the same condition — `if (provider == "Sqlite")` written twice, in two files, with a silent failure mode if the second one is forgotten. Registering the initialiser alongside the store means choosing the store is the only decision the host makes, and initialisation cannot be left out.
+
+*Why not lazily on first use*: it would put a "have I initialised?" check, and the lock that protects it, on the hot path of every operation, to save nothing.
+
+*Why not at registration time*: registering services should not open a database. A hosted service runs at **start**, not at registration, so this objection does not apply to it.
 
 *Why not migrations*: there is one version of one schema. A migration framework is a dependency and a set of files to justify the day there is a second version. *Do not add new types without necessity.*
 
-*Why not at registration time*: registering services should not open a database. Side effects at registration make the composition root lie about what it does.
-
 ### D7. Where the database lives is the host's decision
 
-The module takes a connection string and nothing else. It does not read configuration, choose a directory, or default to a path. `QuestWorlds.Web` does not call it at all (ADR-0008 D4), so the only caller today is the test suite, which uses a temporary file per test.
+The module takes a connection string and nothing else. It does not read configuration, choose a directory, or default to a path — that would make the module responsible for a deployment decision, which is the mistake this whole feature exists to correct.
 
-*Why a file rather than SQLite's in-memory mode in tests*: AC12 requires that a session written by one store instance is readable by a **different** instance over the same database — the path a restart takes. Shared-cache in-memory SQLite can be made to do this, but a temp file tests the thing the requirement actually names, and deletes just as easily.
+`QuestWorlds.Web` supplies it from `ConnectionStrings:SessionStore` (ADR-0008 D4), with a development default in `appsettings.Development.json`:
+
+```json
+{
+  "SessionStore": { "Provider": "InMemory" },
+  "ConnectionStrings": { "SessionStore": "Data Source=questworlds-sessions.db" }
+}
+```
+
+A relative `Data Source` resolves against the process working directory. The file belongs in `.gitignore`.
+
+*Why the default provider stays `InMemory` even though both are wired*: the running application must behave exactly as it does today for someone who changes nothing. Persistence is opt-in, and opting in is one setting — which is the demonstration.
+
+Tests use a temporary file per test rather than SQLite's in-memory mode. *Why*: AC12 requires that a session written by one store instance is readable by a **different** instance over the same database — the path a restart takes. Shared-cache in-memory SQLite can be made to do this, but a temp file tests the thing the requirement actually names, and deletes just as easily.
 
 ### D8. `ConnectionId` is persisted, and is stale on reload
 
@@ -137,7 +155,8 @@ The store round-trips what it was given, including each participant's `Connectio
    │   SqliteSessionStore      : IAmASessionStore      │
    │       ↳ holds a connection string, nothing else   │
    │   SessionRecordMapper     : Session ⇄ rows        │
-   │   SchemaInitialiser       : CREATE IF NOT EXISTS  │
+   │   ...Initialiser          : IHostedService        │
+   │       ↳ CREATE IF NOT EXISTS, WAL, once at start  │
    │                                                   │
    │   Microsoft.Data.Sqlite ─────────────────────┐    │
    └──────────────────────────────────────────────┼────┘
@@ -162,10 +181,10 @@ The store round-trips what it was given, including each participant's `Connectio
 - **Doing**: turning a session into rows and rows back into a session via `Session.Rehydrate`
 - **Deciding**: nothing
 
-**`SchemaInitialiser`** (Role: Service Provider)
+**`SqliteSessionStoreInitialiser`** (Role: Service Provider — an `IHostedService`)
 
 - **Knowing**: the schema
-- **Doing**: creating it if absent, and setting WAL mode
+- **Doing**: creating it if absent and setting WAL mode, once, when the application starts
 - **Deciding**: nothing
 
 ### Implementation Approach
@@ -173,7 +192,7 @@ The store round-trips what it was given, including each participant's `Connectio
 | # | Change | Kind |
 |---|---|---|
 | 1 | Project, `Microsoft.Data.Sqlite` reference, added to `QuestWorlds.slnx` | Structural |
-| 2 | `SchemaInitialiser` and the registration extensions | Structural |
+| 2 | The initialiser (`IHostedService`) and the registration extensions | Structural |
 | 3 | `SessionRecordMapper`, driven by round-trip tests | Structural + new tests |
 | 4 | `SqliteSessionStore`, made to pass the inherited `SessionStoreContract` | Structural + new tests |
 | 5 | The reload-across-instances test (AC12) — the one the in-memory store cannot satisfy | New test |
@@ -189,13 +208,14 @@ No behavioural change to existing code. This module is additive.
 - **The dependency is contained.** `Microsoft.Data.Sqlite` appears in one project. `QuestWorlds.Session` stays at Ce 0.
 - **The database is readable.** Two tables with text enums can be opened and understood, which matters for a demonstration.
 - **The mapping is visible.** Sixty lines showing what an adapter does is the point, not an inconvenience.
+- **The substitution can be performed.** Set `SessionStore:Provider` to `Sqlite`, restart mid-session, and the session is still there — the demonstration that the port exists at all.
 
 ### Negative
 
 - **Hand-written mapping is hand-maintained.** Adding a field to `Session` means touching the schema, the writer, and the reader, with nothing to remind you.
 - **A reloaded session is not yet a resumable game** (D8). The spec's title promises more than the spec's scope delivers, and the gap is reconnection.
 - **Whole-aggregate rewriting on every save** is wasteful in principle, though not at this size.
-- **The store is not exercised by the application**, only by tests, per ADR-0008 D4.
+- **The store is now on a supported path through the application**, per ADR-0008 D4, so its failure modes are the host's problem too: a bad connection string or an unwritable directory fails startup rather than a test.
 - **SQLite is single-writer.** This store makes sessions durable; it does not make them shareable across servers, which is the other half of why the port exists.
 
 ### Risks and Mitigations
@@ -208,6 +228,8 @@ No behavioural change to existing code. This module is additive.
 | Two writers interleave and one save is lost | Not solved here — the lost-update risk recorded in ADR-0007 stands, and SQLite's single-writer lock narrows but does not close it. Needs optimistic concurrency, which is a separate decision |
 | Someone concludes from this module that sessions now survive a restart *usefully* | D8 states the limitation in the ADR, and it should be stated wherever the feature is described |
 | Tests leave temp database files behind | Each test owns its file and deletes it on dispose |
+| The development database file is committed by accident | `questworlds-sessions.db` and its `-wal`/`-shm` companions are added to `.gitignore` |
+| Someone switches the provider to `Sqlite` and expects a mid-session restart to be seamless | D8 — the session reloads, the connections do not. Say so in the README beside the setting |
 
 ## Alternatives Considered
 
