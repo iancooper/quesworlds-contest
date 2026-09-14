@@ -2,7 +2,7 @@
 
 **Spec ID**: 0002
 **Created**: 2026-09-13
-**Status**: Requirements approved (v3 — design decisions settled, SQLite store in scope) — ready for design
+**Status**: Design in progress — ADR-0007 (storage port) proposed; module layout and SQLite ADRs still to write
 
 ## Overview
 
@@ -29,5 +29,5 @@ stays internal. `QuestWorlds.Web` keeps registering the in-memory store, so the 
 | Artifact | Location | State |
 |---|---|---|
 | Requirements | `specs/0002-persistent_sessions/requirements.md` | Approved (v3) |
-| Design (ADRs) | `docs/adr/0007-session-storage-port.md` (planned) | Not created |
+| Design (ADRs) | `docs/adr/0007-session-storage-port.md` | Proposed — 0008/0009 still to write |
 | Tasks | `specs/0002-persistent_sessions/tasks.md` | Not created |
