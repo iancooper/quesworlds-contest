@@ -24,7 +24,7 @@
 
 The port stays `internal` throughout this phase. Nothing about the module's public surface changes yet, so existing tests are the safety net.
 
-- [ ] **1.1 Rename the port and collapse its methods** *(structural)*
+- [x] **1.1 Rename the port and collapse its methods** *(structural)*
   - `ISessionRepository` → `IAmASessionStore` (ADR-0007 D2); keep it `internal` for now
   - `Add` and `Update` → one `Save` (ADR-0007 D4); `Get` and `Remove` unchanged
   - Rename `InMemorySessionRepository` → `InMemorySessionStore`; rename the file to match
@@ -32,7 +32,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - **Validated by**: all four existing `QuestWorlds.Session.Tests` classes pass unchanged
   - **Commit**: structural only
 
-- [ ] **1.2 Make the port and the coordinator async** *(structural)*
+- [x] **1.2 Make the port and the coordinator async** *(structural)*
   - Port: `SaveAsync`, `GetAsync`, `RemoveAsync`, each returning `Task` and taking `CancellationToken cancellationToken = default` (ADR-0007 D3)
   - `InMemorySessionStore` completes immediately with `Task.CompletedTask` / `Task.FromResult(...)` — **not** `TaskCompletionSource`; there is nothing to signal
   - `ISessionCoordinator` → `CreateSessionAsync`, `GetSessionAsync`, `JoinSessionAsync`, `GetParticipantConnectionIdsAsync`

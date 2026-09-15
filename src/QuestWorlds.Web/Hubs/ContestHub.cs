@@ -49,7 +49,7 @@ public class ContestHub : Hub<IContestHubClient>
     /// <returns>The unique session ID that players can use to join.</returns>
     public async Task<string> CreateSession(string gmName)
     {
-        var session = _sessionCoordinator.CreateSession(gmName, Context.ConnectionId);
+        var session = await _sessionCoordinator.CreateSessionAsync(gmName, Context.ConnectionId);
         await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
         await Clients.Caller.SessionCreated(session.Id);
         return session.Id;
@@ -64,7 +64,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            _sessionCoordinator.JoinSession(sessionId, playerName, Context.ConnectionId);
+            await _sessionCoordinator.JoinSessionAsync(sessionId, playerName, Context.ConnectionId);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
             await Clients.Group(sessionId).PlayerJoined(playerName);
         }
@@ -84,7 +84,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var session = _sessionCoordinator.GetSession(sessionId);
+            var session = await _sessionCoordinator.GetSessionAsync(sessionId);
             if (session is null)
             {
                 await Clients.Caller.Error($"Session '{sessionId}' not found");
@@ -126,7 +126,7 @@ public class ContestHub : Hub<IContestHubClient>
             var parsedRating = Rating.Parse(rating);
             frame.SetPlayerAbility(abilityName, parsedRating);
 
-            var session = _sessionCoordinator.GetSession(sessionId);
+            var session = await _sessionCoordinator.GetSessionAsync(sessionId);
             session?.TransitionTo(SessionState.ResolvingContest);
 
             await Clients.Group(sessionId).AbilitySubmitted(abilityName, rating);
@@ -202,7 +202,7 @@ public class ContestHub : Hub<IContestHubClient>
             // Interpret outcome
             var outcome = _outcomeInterpreter.Interpret(result, frame);
 
-            var session = _sessionCoordinator.GetSession(sessionId);
+            var session = await _sessionCoordinator.GetSessionAsync(sessionId);
             session?.TransitionTo(SessionState.ShowingOutcome);
 
             await Clients.Group(sessionId).ContestResolved(outcome);
@@ -223,7 +223,7 @@ public class ContestHub : Hub<IContestHubClient>
     /// <param name="sessionId">The session ID.</param>
     public async Task StartNewContest(string sessionId)
     {
-        var session = _sessionCoordinator.GetSession(sessionId);
+        var session = await _sessionCoordinator.GetSessionAsync(sessionId);
         if (session is null)
         {
             await Clients.Caller.Error($"Session '{sessionId}' not found");

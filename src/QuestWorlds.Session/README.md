@@ -79,15 +79,15 @@ services.AddSessionModule();
 // Then inject ISessionCoordinator where needed
 public class MyService(ISessionCoordinator sessions)
 {
-    public void CreateGame(string gmName, string connectionId)
+    public async Task CreateGame(string gmName, string connectionId)
     {
-        var session = sessions.CreateSession(gmName, connectionId);
+        var session = await sessions.CreateSessionAsync(gmName, connectionId);
         // Share session.Id with players
     }
 
-    public void PlayerJoins(string sessionId, string playerName, string connectionId)
+    public async Task PlayerJoins(string sessionId, string playerName, string connectionId)
     {
-        sessions.JoinSession(sessionId, playerName, connectionId);
+        await sessions.JoinSessionAsync(sessionId, playerName, connectionId);
     }
 }
 ```
@@ -96,7 +96,7 @@ public class MyService(ISessionCoordinator sessions)
 
 ```csharp
 var coordinator = SessionModule.CreateCoordinator();
-var session = coordinator.CreateSession("GameMaster", "connection-123");
+var session = await coordinator.CreateSessionAsync("GameMaster", "connection-123");
 ```
 
 ## Design Decisions

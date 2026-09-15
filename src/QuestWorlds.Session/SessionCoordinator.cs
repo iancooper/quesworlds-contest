@@ -11,20 +11,21 @@ internal class SessionCoordinator : ISessionCoordinator
         _store = store;
     }
 
-    public Session CreateSession(string gmName, string connectionId)
+    public async Task<Session> CreateSessionAsync(string gmName, string connectionId, CancellationToken cancellationToken = default)
     {
         var sessionId = _idGenerator.Generate();
         var gm = new Participant(gmName, ParticipantRole.GM, connectionId);
         var session = new Session(sessionId, gm);
-        _store.Save(session);
+        await _store.SaveAsync(session, cancellationToken);
         return session;
     }
 
-    public Session? GetSession(string sessionId) => _store.Get(sessionId);
+    public Task<Session?> GetSessionAsync(string sessionId, CancellationToken cancellationToken = default) =>
+        _store.GetAsync(sessionId, cancellationToken);
 
-    public void JoinSession(string sessionId, string playerName, string connectionId)
+    public async Task JoinSessionAsync(string sessionId, string playerName, string connectionId, CancellationToken cancellationToken = default)
     {
-        var session = _store.Get(sessionId);
+        var session = await _store.GetAsync(sessionId, cancellationToken);
         if (session is null)
             throw new InvalidOperationException($"Session '{sessionId}' not found");
 
@@ -32,9 +33,9 @@ internal class SessionCoordinator : ISessionCoordinator
         session.AddPlayer(player);
     }
 
-    public IEnumerable<string> GetParticipantConnectionIds(string sessionId)
+    public async Task<IEnumerable<string>> GetParticipantConnectionIdsAsync(string sessionId, CancellationToken cancellationToken = default)
     {
-        var session = _store.Get(sessionId);
+        var session = await _store.GetAsync(sessionId, cancellationToken);
         if (session is null)
             return Enumerable.Empty<string>();
 

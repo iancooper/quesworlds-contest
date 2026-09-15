@@ -6,10 +6,18 @@ internal class InMemorySessionStore : IAmASessionStore
 {
     private readonly ConcurrentDictionary<string, Session> _sessions = new();
 
-    public void Save(Session session) => _sessions[session.Id] = session;
+    public Task SaveAsync(Session session, CancellationToken cancellationToken = default)
+    {
+        _sessions[session.Id] = session;
+        return Task.CompletedTask;
+    }
 
-    public Session? Get(string sessionId) =>
-        _sessions.TryGetValue(sessionId, out var session) ? session : null;
+    public Task<Session?> GetAsync(string sessionId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_sessions.TryGetValue(sessionId, out var session) ? session : null);
 
-    public void Remove(string sessionId) => _sessions.TryRemove(sessionId, out _);
+    public Task RemoveAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        _sessions.TryRemove(sessionId, out _);
+        return Task.CompletedTask;
+    }
 }
