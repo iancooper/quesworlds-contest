@@ -34,6 +34,20 @@ public interface ISessionCoordinator
     Task JoinSessionAsync(string sessionId, string playerName, string connectionId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Moves a session to a new state and stores the result.
+    /// </summary>
+    /// <param name="sessionId">The session ID to transition.</param>
+    /// <param name="newState">The <see cref="SessionState"/> to move the session to.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that cancels the transition. Optional; defaults to <see cref="CancellationToken.None"/>.</param>
+    /// <returns>A <see cref="Task"/> that completes when the new state has been stored.</returns>
+    /// <remarks>
+    /// Transition through here rather than calling <see cref="Session.TransitionTo"/> on a session you were handed.
+    /// A store may return a copy, so a transition applied to that copy changes nothing that anyone will read back.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the session is not found.</exception>
+    Task TransitionSessionStateAsync(string sessionId, SessionState newState, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all participant connection IDs for a session (GM and all players).
     /// </summary>
     /// <param name="sessionId">The session ID.</param>

@@ -13,11 +13,14 @@ internal class InMemorySessionStore : IAmASessionStore
     }
 
     public Task<Session?> GetAsync(string sessionId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_sessions.TryGetValue(sessionId, out var session) ? session : null);
+        Task.FromResult(_sessions.TryGetValue(sessionId, out var session) ? CopyOf(session) : null);
 
     public Task RemoveAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         _sessions.TryRemove(sessionId, out _);
         return Task.CompletedTask;
     }
+
+    private static Session CopyOf(Session session) =>
+        Session.Rehydrate(session.Id, session.GM, session.Players, session.State);
 }

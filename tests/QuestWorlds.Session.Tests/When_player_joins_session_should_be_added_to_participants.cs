@@ -17,7 +17,9 @@ public class When_player_joins_session_should_be_added_to_participants
         await coordinator.JoinSessionAsync(session.Id, playerName, playerConnectionId);
 
         // Assert
-        Assert.Single(session.Players);
+        var stored = await coordinator.GetSessionAsync(session.Id);
+        Assert.NotNull(stored);
+        Assert.Single(stored.Players);
     }
 
     [Fact]
@@ -32,7 +34,9 @@ public class When_player_joins_session_should_be_added_to_participants
         await coordinator.JoinSessionAsync(session.Id, playerName, "player-connection");
 
         // Assert
-        Assert.Equal(playerName, session.Players[0].Name);
+        var stored = await coordinator.GetSessionAsync(session.Id);
+        Assert.NotNull(stored);
+        Assert.Equal(playerName, stored.Players[0].Name);
     }
 
     [Fact]
@@ -46,7 +50,9 @@ public class When_player_joins_session_should_be_added_to_participants
         await coordinator.JoinSessionAsync(session.Id, "Player One", "player-connection");
 
         // Assert
-        Assert.Equal(ParticipantRole.Player, session.Players[0].Role);
+        var stored = await coordinator.GetSessionAsync(session.Id);
+        Assert.NotNull(stored);
+        Assert.Equal(ParticipantRole.Player, stored.Players[0].Role);
     }
 
     [Fact]
@@ -61,7 +67,9 @@ public class When_player_joins_session_should_be_added_to_participants
         await coordinator.JoinSessionAsync(session.Id, "Player One", connectionId);
 
         // Assert
-        Assert.Equal(connectionId, session.Players[0].ConnectionId);
+        var stored = await coordinator.GetSessionAsync(session.Id);
+        Assert.NotNull(stored);
+        Assert.Equal(connectionId, stored.Players[0].ConnectionId);
     }
 
     [Fact]
@@ -77,10 +85,12 @@ public class When_player_joins_session_should_be_added_to_participants
         await coordinator.JoinSessionAsync(session.Id, "Player Three", "connection-3");
 
         // Assert
-        Assert.Equal(3, session.Players.Count);
-        Assert.Contains(session.Players, p => p.Name == "Player One");
-        Assert.Contains(session.Players, p => p.Name == "Player Two");
-        Assert.Contains(session.Players, p => p.Name == "Player Three");
+        var stored = await coordinator.GetSessionAsync(session.Id);
+        Assert.NotNull(stored);
+        Assert.Equal(3, stored.Players.Count);
+        Assert.Contains(stored.Players, p => p.Name == "Player One");
+        Assert.Contains(stored.Players, p => p.Name == "Player Two");
+        Assert.Contains(stored.Players, p => p.Name == "Player Three");
     }
 
     [Fact]

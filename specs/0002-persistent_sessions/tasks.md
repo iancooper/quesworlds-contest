@@ -69,7 +69,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 > **Do not split this phase.** 3.1 without 3.2 makes `JoinSession` lose players in the default configuration. The point of doing them together is that 3.1 is what makes 3.2's absence *visible* — see ADR-0008 D7.
 
-- [ ] **3.1 TEST + IMPLEMENT: joining a session persists the player**
+- [x] **3.1 TEST + IMPLEMENT: joining a session persists the player**
   - **USE COMMAND**: `/test-first when a player joins a session the store should hold the player`
   - Test location: `tests/QuestWorlds.Session.Tests`
   - Test file: `When_a_player_joins_a_session_should_be_persisted_to_the_store.cs`

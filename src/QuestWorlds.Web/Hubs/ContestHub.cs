@@ -95,7 +95,7 @@ public class ContestHub : Hub<IContestHubClient>
             var frame = new ContestFrame(prize, TargetNumber.FromRating(Rating.Parse(resistanceTn)));
             _frameStore.SetFrame(sessionId, frame);
 
-            session.TransitionTo(SessionState.AwaitingPlayerAbility);
+            await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.AwaitingPlayerAbility);
 
             await Clients.Group(sessionId).ContestFramed(prize, resistanceTn);
             await Clients.Group(sessionId).SessionStateChanged(SessionState.AwaitingPlayerAbility);
@@ -126,8 +126,7 @@ public class ContestHub : Hub<IContestHubClient>
             var parsedRating = Rating.Parse(rating);
             frame.SetPlayerAbility(abilityName, parsedRating);
 
-            var session = await _sessionCoordinator.GetSessionAsync(sessionId);
-            session?.TransitionTo(SessionState.ResolvingContest);
+            await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.ResolvingContest);
 
             await Clients.Group(sessionId).AbilitySubmitted(abilityName, rating);
             await Clients.Group(sessionId).SessionStateChanged(SessionState.ResolvingContest);
@@ -202,8 +201,7 @@ public class ContestHub : Hub<IContestHubClient>
             // Interpret outcome
             var outcome = _outcomeInterpreter.Interpret(result, frame);
 
-            var session = await _sessionCoordinator.GetSessionAsync(sessionId);
-            session?.TransitionTo(SessionState.ShowingOutcome);
+            await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.ShowingOutcome);
 
             await Clients.Group(sessionId).ContestResolved(outcome);
             await Clients.Group(sessionId).SessionStateChanged(SessionState.ShowingOutcome);
@@ -230,7 +228,7 @@ public class ContestHub : Hub<IContestHubClient>
             return;
         }
 
-        session.TransitionTo(SessionState.FramingContest);
+        await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.FramingContest);
         await Clients.Group(sessionId).SessionStateChanged(SessionState.FramingContest);
     }
 }

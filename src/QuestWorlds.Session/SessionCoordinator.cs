@@ -31,6 +31,17 @@ internal class SessionCoordinator : ISessionCoordinator
 
         var player = new Participant(playerName, ParticipantRole.Player, connectionId);
         session.AddPlayer(player);
+        await _store.SaveAsync(session, cancellationToken);
+    }
+
+    public async Task TransitionSessionStateAsync(string sessionId, SessionState newState, CancellationToken cancellationToken = default)
+    {
+        var session = await _store.GetAsync(sessionId, cancellationToken);
+        if (session is null)
+            throw new InvalidOperationException($"Session '{sessionId}' not found");
+
+        session.TransitionTo(newState);
+        await _store.SaveAsync(session, cancellationToken);
     }
 
     public async Task<IEnumerable<string>> GetParticipantConnectionIdsAsync(string sessionId, CancellationToken cancellationToken = default)
