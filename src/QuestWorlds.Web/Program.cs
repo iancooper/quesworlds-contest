@@ -8,6 +8,14 @@ using QuestWorlds.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Choosing a store is the host's job, and a host that forgets should find out at startup rather
+// than on the first hub call, mid-game. Validation names the missing IAmASessionStore (ADR-0008 D3).
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateOnBuild = true;
+    options.ValidateScopes = true;
+});
+
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();

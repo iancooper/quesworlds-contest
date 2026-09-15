@@ -108,7 +108,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - `QuestWorlds.Session.Tests` references `QuestWorlds.InMemorySessionStore`; `SessionCoordinatorBuilder` passes one. **This is the only change expected to existing tests** (AC6)
   - `QuestWorlds.Web` calls `AddInMemorySessionStore()` for now — the configuration switch arrives in Phase 8
 
-- [ ] **4.4 Fail fast when no store is registered** *(structural)*
+- [x] **4.4 Fail fast when no store is registered** *(structural)*
   - Enable `ValidateOnBuild` and `ValidateScopes` in `QuestWorlds.Web`'s host (ADR-0008 D3)
   - Confirm by hand that removing the store registration fails at **startup**, naming `IAmASessionStore`, rather than on the first hub call
 
