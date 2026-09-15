@@ -76,12 +76,13 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - Test should verify:
     - A player joins, then the session is **read back from the coordinator** and contains that player
     - A second player joins and both are present, in join order
-    - The stored session's `State` survives a `TransitionTo` followed by a read
+    - A state transition made through the coordinator survives a read back (ADR-0007 **D7**)
     - This test **fails before the fix** — that is the point; confirm red before implementing
   - **⛔ STOP HERE - WAIT FOR USER APPROVAL in IDE before implementing**
   - Implementation should:
     - Make `InMemorySessionStore.GetAsync` return `Session.Rehydrate(...)` — a **copy**, never the dictionary's instance (ADR-0008 D7)
     - Add the missing `await _store.SaveAsync(session, ct)` to `SessionCoordinator.JoinSessionAsync` (`SessionCoordinator.cs:31` today)
+    - Add `TransitionSessionStateAsync(sessionId, newState, ct)` to `ISessionCoordinator`, which loads, transitions and saves (ADR-0007 D7); `ContestHub`'s four `session.TransitionTo(...)` calls go through it instead
     - Audit **every** coordinator path that mutates a session and save there too — the defect is a missing save, so a second missing save is the same bug
     - Existing tests that relied on a live reference will fail; that is the defect surfacing, and they should be corrected to read back through the coordinator
   - **Commit**: behavioural — on its own, separate from every structural commit

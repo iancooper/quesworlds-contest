@@ -39,7 +39,7 @@ Sessions surviving a restart is a functional requirement. A design that cannot e
 
 **Export storage as a single async port named `IAmASessionStore`, with an upsert-shaped contract, and make the coordinator responsible for storing the result of every change it makes.**
 
-Five decisions, each with its reason.
+Six decisions, each with its reason.
 
 ### D1. The port is public; `QuestWorlds.Session` keeps no implementation
 
@@ -154,6 +154,26 @@ public static Session Rehydrate(
 
 > **This amends a requirement.** The NFR "the public surface grows by exactly one interface" was written before this was examined. The surface grows by one interface **and one factory method on an existing public type**. The alternative — a store replaying domain rules to load a row — is worse. The requirement should be read as amended by this ADR.
 
+### D7. State transitions go through the coordinator, which saves them
+
+*Added after D1–D6 were accepted, during implementation of task 3.1.*
+
+```csharp
+Task TransitionSessionStateAsync(string sessionId, SessionState newState, CancellationToken cancellationToken = default);
+```
+
+`ContestHub` today calls `session.TransitionTo(...)` on the instance `GetSessionAsync` returned, at four sites — `FrameContest`, `SubmitAbility`, `ResolveContest` and `StartNewContest` — and never saves. That works only because the in-memory store hands back a live reference. Under D5's licence for `GetAsync` to return a copy, all four transition an object that is then discarded.
+
+*Why this was not caught earlier*: the Key Components table above already assigns the coordinator "coordinate session creation, joining, **and state transitions** — and store the result of each". The contract published under *The resulting contract* did not, and neither did the requirements' functional list. The responsibility and the interface disagreed, and the interface was the one that got implemented.
+
+*Why it matters more than a missing method*: `Complete_contest_workflow_tests` asserts only the `SessionStateChanged` events the hub pushes to its clients. Nothing reads state back out of storage, so shipping the copy without this change loses every transition **silently**, in the default configuration — the precise failure mode Phase 3 of the task list exists to prevent.
+
+*Why not a `SaveSessionAsync(session)` on the coordinator instead*: it would let the hub mutate and then save, which puts "remember to save" back in the caller's hands. That is the defect D4 removed from `Add`/`Update`, reintroduced one layer up. A caller that forgets fails silently; a coordinator that owns the transition cannot forget.
+
+The hub still reads the session first where it needs to distinguish "not found" from "transitioned", so its error messages are unchanged.
+
+> **This amends the requirements again.** The public surface grows by one interface, `Session.Rehydrate`, **and one method on `ISessionCoordinator`**. Read alongside D6's note.
+
 ### The resulting contract
 
 ```csharp
@@ -204,6 +224,7 @@ Task<Session> CreateSessionAsync(string gmName, string connectionId, Cancellatio
 Task<Session?> GetSessionAsync(string sessionId, CancellationToken ct = default);
 Task JoinSessionAsync(string sessionId, string playerName, string connectionId, CancellationToken ct = default);
 Task<IEnumerable<string>> GetParticipantConnectionIdsAsync(string sessionId, CancellationToken ct = default);
+Task TransitionSessionStateAsync(string sessionId, SessionState newState, CancellationToken ct = default);  // D7
 ```
 
 The cost is low and was checked against the code: all seven of `ContestHub`'s calls to the coordinator already sit inside `public async Task` methods, so this is `await` insertion, not restructuring.
@@ -217,7 +238,7 @@ Structural and behavioural changes stay in separate commits, per Tidy First:
 | 1 | Rename `ISessionRepository` → `IAmASessionStore`; `Add`/`Update` → `SaveAsync`, etc.; still `internal`, still sync | Structural |
 | 2 | Make the port async; `await` through `SessionCoordinator`, `ISessionCoordinator`, `ContestHub` | Structural |
 | 3 | Add `Session.Rehydrate` | Structural |
-| 4 | **Fix the write-back defect**: `JoinSession` and every other mutating path call `SaveAsync` | **Behavioural** |
+| 4 | **Fix the write-back defect**: `JoinSession` and every other mutating path call `SaveAsync`; state transitions move behind `TransitionSessionStateAsync` (D7) | **Behavioural** |
 | 5 | Make the port `public`; move the in-memory store out of the assembly | Structural |
 
 Step 4 is the only behavioural change and is the only one with a failing test written first. Step 5 is last because the port's shape should be settled before it is published.
@@ -234,8 +255,8 @@ Step 4 is the only behavioural change and is the only one with a failing test wr
 
 ### Negative
 
-- **The public surface grows by more than the requirements anticipated**: one interface plus `Session.Rehydrate` (D6).
-- **`ISessionCoordinator` changes shape.** Async is contagious; `ContestHub` changes even though nothing about the web layer prompted this work.
+- **The public surface grows by more than the requirements anticipated**: one interface, plus `Session.Rehydrate` (D6), plus `ISessionCoordinator.TransitionSessionStateAsync` (D7).
+- **`ISessionCoordinator` changes shape.** Async is contagious; `ContestHub` changes even though nothing about the web layer prompted this work. D7 changes it again: the hub no longer calls `Session.TransitionTo` itself.
 - **`CreateCoordinator()` loses its no-argument form.** `Session` can no longer construct a store, so every caller — including `SessionCoordinatorBuilder` in the tests — must supply one.
 - **The naming convention is now applied inconsistently.** `IAmASessionStore` sits beside `ISessionCoordinator` and `IContestFrameStore` until those are boy-scouted.
 - **Async over an in-memory dictionary is ceremony.** `Task.FromResult` on every call buys nothing for the default store; it is paid for the store that does real I/O.
@@ -248,6 +269,7 @@ Step 4 is the only behavioural change and is the only one with a failing test wr
 | Two hub callbacks for one session interleave: both `GetAsync`, both mutate, the later `SaveAsync` wins and the earlier change is lost | Real today and not made worse by this ADR, but the port makes it visible. Out of scope; the contract explicitly does not ask stores to arbitrate. Needs its own decision — optimistic concurrency on the session — before a store is used across servers |
 | `Task.FromResult` misused as `TaskCompletionSource` in the in-memory store | Nothing is being signalled; the contract test suite runs identically against both stores, so a wrong idiom shows up as a hang, not a silent pass |
 | `Session.Rehydrate` used by application code as a back door around `AddPlayer`'s validation | Document it as a store-facing factory; its four-argument shape makes accidental use unlikely |
+| `Session.TransitionTo` stays public, so a caller can still transition without saving — the D7 defect, reachable again | Out of scope here: narrowing it is a change to `Session`'s own surface. The contract suite reads state back through the store, so a coordinator path that stops saving fails a test |
 
 ## Alternatives Considered
 
