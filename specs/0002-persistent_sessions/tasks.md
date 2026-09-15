@@ -95,13 +95,13 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - `IAmASessionStore` becomes `public` with XML documentation stating the three obligations from ADR-0007: `SaveAsync` is an upsert, `GetAsync` may return a copy, `RemoveAsync` is idempotent
   - `ISessionIdGenerator` and `SessionIdGenerator` stay `internal` (AC5)
 
-- [ ] **4.2 Create `QuestWorlds.InMemorySessionStore`** *(structural)*
+- [x] **4.2 Create `QuestWorlds.InMemorySessionStore`** *(structural)*
   - New project under `src/`, added to `QuestWorlds.slnx`; references `QuestWorlds.Session` only
   - Move `InMemorySessionStore` into it and make it `public`
   - `QuestWorlds.Session` now contains **no** implementation of the port (AC1)
   - Verify `QuestWorlds.Session.csproj` still has zero `ProjectReference` elements (AC2)
 
-- [ ] **4.3 Move store selection to the composition root** *(structural)*
+- [x] **4.3 Move store selection to the composition root** *(structural)*
   - `AddSessionModule()` registers the coordinator and id generator, and **no store** (ADR-0008 D2)
   - Add `AddInMemorySessionStore()` to the new module
   - `SessionModule.CreateCoordinator(IAmASessionStore store)` replaces the no-argument form (ADR-0008 D6)

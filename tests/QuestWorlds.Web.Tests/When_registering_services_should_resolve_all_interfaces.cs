@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuestWorlds.DiceRoller;
+using QuestWorlds.InMemorySessionStore;
 using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
@@ -14,6 +15,7 @@ public class When_registering_services_should_resolve_all_interfaces
         // Arrange
         var services = new ServiceCollection();
         services.AddSessionModule();
+        services.AddInMemorySessionStore();
 
         // Act
         var provider = services.BuildServiceProvider();

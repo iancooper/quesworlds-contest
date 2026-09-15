@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/QuestWorlds.DiceRoller/QuestWorlds.DiceRoller.csproj" />
     <Project Path="src/QuestWorlds.Framing/QuestWorlds.Framing.csproj" />
+    <Project Path="src/QuestWorlds.InMemorySessionStore/QuestWorlds.InMemorySessionStore.csproj" />
     <Project Path="src/QuestWorlds.Outcome/QuestWorlds.Outcome.csproj" />
     <Project Path="src/QuestWorlds.Resolution/QuestWorlds.Resolution.csproj" />
     <Project Path="src/QuestWorlds.Session/QuestWorlds.Session.csproj" />

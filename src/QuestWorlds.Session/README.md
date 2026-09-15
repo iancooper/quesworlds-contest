@@ -4,7 +4,7 @@ Session management module for coordinating GM and player participation.
 
 ## Overview
 
-This module manages contest sessions, including session creation, player joining, and state tracking. Sessions are ephemeral (in-memory) and persist for the duration of the game.
+This module manages contest sessions, including session creation, player joining, and state tracking. It declares where sessions are kept — `IAmASessionStore` — and implements none of it; a host chooses a store module and registers it.
 
 ## Architecture
 
@@ -19,13 +19,19 @@ This module manages contest sessions, including session creation, player joining
 │             ▼                            ▼                      │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                    IAmASessionStore                      │   │
-│  │                 (Role: Session Store)                    │   │
+│  │               (Role: Information Holder)                 │   │
 │  │                                                          │   │
-│  │  - Sessions stored in ConcurrentDictionary               │   │
-│  │  - Thread-safe access for concurrent requests            │   │
+│  │  - Declared here, implemented in a store module          │   │
+│  │  - SaveAsync upserts; GetAsync may return a copy;        │   │
+│  │    RemoveAsync is idempotent                             │   │
 │  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+└──────────────────────────────┼──────────────────────────────────┘
+                               │ implemented by
+                               ▼
+              QuestWorlds.InMemorySessionStore (and, later, Sqlite)
 ```
+
+The arrow points inward: this module references nothing, and the stores reference it.
 
 ## Key Types
 
@@ -48,7 +54,6 @@ This module manages contest sessions, including session creation, player joining
 |------|-------------|
 | `ISessionIdGenerator` | Generates unique session IDs |
 | `SessionIdGenerator` | Implementation using cryptographic random |
-| `InMemorySessionStore` | In-memory storage using ConcurrentDictionary |
 | `SessionCoordinator` | Implementation of ISessionCoordinator |
 
 ## Session States
@@ -75,6 +80,7 @@ Session IDs are 6-character alphanumeric codes:
 
 ```csharp
 services.AddSessionModule();
+services.AddInMemorySessionStore();  // or any other store module; exactly one
 
 // Then inject ISessionCoordinator where needed
 public class MyService(ISessionCoordinator sessions)
@@ -95,26 +101,25 @@ public class MyService(ISessionCoordinator sessions)
 ### Without Dependency Injection
 
 ```csharp
-var coordinator = SessionModule.CreateCoordinator();
+var coordinator = SessionModule.CreateCoordinator(new InMemorySessionStore());
 var session = await coordinator.CreateSessionAsync("GameMaster", "connection-123");
 ```
 
 ## Design Decisions
 
-- **In-Memory Storage**: Simple and fast; no external dependencies
-- **Thread-Safe**: Uses `ConcurrentDictionary` for concurrent access
-- **No Persistence**: Sessions are ephemeral (acceptable per requirements)
-- **Storage is a port**: `IAmASessionStore` is public so a host can choose its store (ADR-0007)
+- **Storage is a port**: `IAmASessionStore` is public and this module implements none of it, so a host can choose its store (ADR-0007, ADR-0008)
+- **The coordinator saves what it changes**: a store may hand back a copy, so a change that is not saved is a change that did not happen (ADR-0007 D5, D7)
 - **Internal Implementation**: id generation and coordination are internal; only the ports and the types they carry are public
 - **Connection Tracking**: Stores SignalR connection IDs for real-time updates
 
 ## Limitations
 
-- Single server only (in-memory storage doesn't scale horizontally)
-- Sessions lost on server restart
+- Durability, scale-out and start-up behaviour are the chosen store's properties, not this module's
 - No session timeout (abandoned sessions accumulate)
 
 ## Related ADRs
 
+- [ADR-0007: Session Storage Port](../../docs/adr/0007-session-storage-port.md)
+- [ADR-0008: Session Store Module Composition](../../docs/adr/0008-session-store-module-composition.md)
 - [ADR-0002: Session Management](../../docs/adr/0002-session-management.md)
 - [ADR-0001: User Interface Architecture](../../docs/adr/0001-user-interface-architecture.md)

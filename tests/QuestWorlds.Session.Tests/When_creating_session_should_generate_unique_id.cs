@@ -2,6 +2,10 @@ using QuestWorlds.Session;
 
 namespace QuestWorlds.Session.Tests;
 
+// The store's namespace and its type share a name, so an unqualified InMemorySessionStore
+// under QuestWorlds binds to the namespace. The alias says which we mean.
+using InMemorySessionStore = QuestWorlds.InMemorySessionStore.InMemorySessionStore;
+
 public class When_creating_session_should_generate_unique_id
 {
     private const string VALID_CHARACTERS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -102,6 +106,6 @@ internal class SessionCoordinatorBuilder
 {
     public ISessionCoordinator Build()
     {
-        return SessionModule.CreateCoordinator();
+        return SessionModule.CreateCoordinator(new InMemorySessionStore());
     }
 }

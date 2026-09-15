@@ -1,4 +1,5 @@
 using QuestWorlds.DiceRoller;
+using QuestWorlds.InMemorySessionStore;
 using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
@@ -13,6 +14,7 @@ builder.Services.AddSignalR();
 
 // Register QuestWorlds modules
 builder.Services.AddSessionModule();
+builder.Services.AddInMemorySessionStore();
 builder.Services.AddDiceRollerModule();
 builder.Services.AddResolutionModule();
 builder.Services.AddOutcomeModule();

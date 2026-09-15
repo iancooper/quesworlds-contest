@@ -6,12 +6,17 @@ namespace QuestWorlds.Session;
 public static class SessionModule
 {
     /// <summary>
-    /// Creates an ISessionCoordinator with default internal dependencies.
+    /// Creates an <see cref="ISessionCoordinator"/> over the supplied store.
     /// </summary>
-    public static ISessionCoordinator CreateCoordinator()
+    /// <param name="store">The <see cref="IAmASessionStore"/> the coordinator keeps sessions in.</param>
+    /// <returns>A coordinator with this module's internal dependencies supplied.</returns>
+    /// <remarks>
+    /// The store is a parameter because this module contains no implementation of the port and so
+    /// cannot supply a default (ADR-0008 D6).
+    /// </remarks>
+    public static ISessionCoordinator CreateCoordinator(IAmASessionStore store)
     {
         var idGenerator = new SessionIdGenerator();
-        var store = new InMemorySessionStore();
         return new SessionCoordinator(idGenerator, store);
     }
 }
