@@ -18,7 +18,7 @@ This module manages contest sessions, including session creation, player joining
 │             │                            │                      │
 │             ▼                            ▼                      │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   ISessionRepository                     │   │
+│  │                    IAmASessionStore                      │   │
 │  │                 (Role: Session Store)                    │   │
 │  │                                                          │   │
 │  │  - Sessions stored in ConcurrentDictionary               │   │
@@ -47,8 +47,8 @@ This module manages contest sessions, including session creation, player joining
 |------|-------------|
 | `ISessionIdGenerator` | Generates unique session IDs |
 | `SessionIdGenerator` | Implementation using cryptographic random |
-| `ISessionRepository` | Stores and retrieves sessions |
-| `InMemorySessionRepository` | In-memory storage using ConcurrentDictionary |
+| `IAmASessionStore` | Stores and retrieves sessions |
+| `InMemorySessionStore` | In-memory storage using ConcurrentDictionary |
 | `SessionCoordinator` | Implementation of ISessionCoordinator |
 
 ## Session States

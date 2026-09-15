@@ -3,12 +3,12 @@ namespace QuestWorlds.Session;
 internal class SessionCoordinator : ISessionCoordinator
 {
     private readonly ISessionIdGenerator _idGenerator;
-    private readonly ISessionRepository _repository;
+    private readonly IAmASessionStore _store;
 
-    public SessionCoordinator(ISessionIdGenerator idGenerator, ISessionRepository repository)
+    public SessionCoordinator(ISessionIdGenerator idGenerator, IAmASessionStore store)
     {
         _idGenerator = idGenerator;
-        _repository = repository;
+        _store = store;
     }
 
     public Session CreateSession(string gmName, string connectionId)
@@ -16,15 +16,15 @@ internal class SessionCoordinator : ISessionCoordinator
         var sessionId = _idGenerator.Generate();
         var gm = new Participant(gmName, ParticipantRole.GM, connectionId);
         var session = new Session(sessionId, gm);
-        _repository.Add(session);
+        _store.Save(session);
         return session;
     }
 
-    public Session? GetSession(string sessionId) => _repository.Get(sessionId);
+    public Session? GetSession(string sessionId) => _store.Get(sessionId);
 
     public void JoinSession(string sessionId, string playerName, string connectionId)
     {
-        var session = _repository.Get(sessionId);
+        var session = _store.Get(sessionId);
         if (session is null)
             throw new InvalidOperationException($"Session '{sessionId}' not found");
 
@@ -34,7 +34,7 @@ internal class SessionCoordinator : ISessionCoordinator
 
     public IEnumerable<string> GetParticipantConnectionIds(string sessionId)
     {
-        var session = _repository.Get(sessionId);
+        var session = _store.Get(sessionId);
         if (session is null)
             return Enumerable.Empty<string>();
 

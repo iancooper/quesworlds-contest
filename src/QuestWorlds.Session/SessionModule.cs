@@ -11,7 +11,7 @@ public static class SessionModule
     public static ISessionCoordinator CreateCoordinator()
     {
         var idGenerator = new SessionIdGenerator();
-        var repository = new InMemorySessionRepository();
-        return new SessionCoordinator(idGenerator, repository);
+        var store = new InMemorySessionStore();
+        return new SessionCoordinator(idGenerator, store);
     }
 }
