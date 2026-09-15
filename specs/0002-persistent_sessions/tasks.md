@@ -91,7 +91,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 ## Phase 4 — Extract the in-memory store into a module (structural)
 
-- [ ] **4.1 Export the port** *(structural)*
+- [x] **4.1 Export the port** *(structural)*
   - `IAmASessionStore` becomes `public` with XML documentation stating the three obligations from ADR-0007: `SaveAsync` is an upsert, `GetAsync` may return a copy, `RemoveAsync` is idempotent
   - `ISessionIdGenerator` and `SessionIdGenerator` stay `internal` (AC5)
 

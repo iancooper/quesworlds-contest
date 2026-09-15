@@ -34,6 +34,7 @@ This module manages contest sessions, including session creation, player joining
 | Type | Description |
 |------|-------------|
 | `ISessionCoordinator` | Main entry point for session operations |
+| `IAmASessionStore` | Port a store module implements to hold sessions |
 | `Session` | Represents a contest session with GM and players |
 | `Participant` | Represents a participant (GM or Player) |
 | `ParticipantRole` | Enum for participant roles (GM, Player) |
@@ -47,7 +48,6 @@ This module manages contest sessions, including session creation, player joining
 |------|-------------|
 | `ISessionIdGenerator` | Generates unique session IDs |
 | `SessionIdGenerator` | Implementation using cryptographic random |
-| `IAmASessionStore` | Stores and retrieves sessions |
 | `InMemorySessionStore` | In-memory storage using ConcurrentDictionary |
 | `SessionCoordinator` | Implementation of ISessionCoordinator |
 
@@ -104,7 +104,8 @@ var session = await coordinator.CreateSessionAsync("GameMaster", "connection-123
 - **In-Memory Storage**: Simple and fast; no external dependencies
 - **Thread-Safe**: Uses `ConcurrentDictionary` for concurrent access
 - **No Persistence**: Sessions are ephemeral (acceptable per requirements)
-- **Internal Implementation**: Only `ISessionCoordinator` is public; implementation details are internal
+- **Storage is a port**: `IAmASessionStore` is public so a host can choose its store (ADR-0007)
+- **Internal Implementation**: id generation and coordination are internal; only the ports and the types they carry are public
 - **Connection Tracking**: Stores SignalR connection IDs for real-time updates
 
 ## Limitations
