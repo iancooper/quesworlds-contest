@@ -41,6 +41,27 @@ public class Session
     }
 
     /// <summary>
+    /// Rebuilds a session from parts that were previously stored, restoring it as it was rather than starting it.
+    /// </summary>
+    /// <param name="id">The stored session identifier.</param>
+    /// <param name="gm">The stored Game Master <see cref="Participant"/>.</param>
+    /// <param name="players">The stored players, as an <see cref="IEnumerable{T}"/> of <see cref="Participant"/>. They are restored in the order supplied.</param>
+    /// <param name="state">The stored <see cref="SessionState"/>.</param>
+    /// <returns>A <see cref="Session"/> holding the supplied id, GM, players and state.</returns>
+    /// <remarks>
+    /// For use by a store loading a session, not by a caller starting one; use the constructor for that.
+    /// The participant list is accepted as given: <see cref="AddPlayer"/>'s rule is not re-run, because it was
+    /// satisfied when the player joined, and reading a row should not re-decide a decision already taken.
+    /// </remarks>
+    public static Session Rehydrate(string id, Participant gm, IEnumerable<Participant> players, SessionState state)
+    {
+        var session = new Session(id, gm);
+        session._players.AddRange(players);
+        session.State = state;
+        return session;
+    }
+
+    /// <summary>
     /// Adds a player to this session.
     /// </summary>
     /// <param name="player">The player to add.</param>

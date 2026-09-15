@@ -48,7 +48,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 `Session` must be rebuildable from data alone before any store can return a copy or load a row.
 
-- [ ] **2.1 TEST + IMPLEMENT: a session can be reconstructed from its stored parts**
+- [x] **2.1 TEST + IMPLEMENT: a session can be reconstructed from its stored parts**
   - **USE COMMAND**: `/test-first when rehydrating a session should restore id gm players and state`
   - Test location: `tests/QuestWorlds.Session.Tests`
   - Test file: `When_rehydrating_a_session_should_restore_id_gm_players_and_state.cs`
