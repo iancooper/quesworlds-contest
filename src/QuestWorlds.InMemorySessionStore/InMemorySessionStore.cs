@@ -54,7 +54,7 @@ public class InMemorySessionStore : IAmASessionStore, IAmAContestFrameStore
 
     /// <inheritdoc />
     public Task<ContestFrame?> GetFrameAsync(string sessionId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_frames.TryGetValue(sessionId, out var frame) ? frame : null);
+        Task.FromResult(_frames.TryGetValue(sessionId, out var frame) ? CopyOf(frame) : null);
 
     /// <inheritdoc />
     public Task ClearFrameAsync(string sessionId, CancellationToken cancellationToken = default)
@@ -65,4 +65,7 @@ public class InMemorySessionStore : IAmASessionStore, IAmAContestFrameStore
 
     private static Session CopyOf(Session session) =>
         Session.Rehydrate(session.Id, session.GM, session.Players, session.State);
+
+    private static ContestFrame CopyOf(ContestFrame frame) =>
+        ContestFrame.Rehydrate(frame.Prize, frame.Resistance, frame.PlayerAbilityName, frame.PlayerRating, frame.Modifiers);
 }

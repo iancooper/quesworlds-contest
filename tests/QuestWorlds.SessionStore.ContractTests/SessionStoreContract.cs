@@ -268,6 +268,26 @@ public abstract class SessionStoreContract<TStore> where TStore : IAmASessionSto
     }
 
     [Fact]
+    public async Task Mutating_a_frame_that_was_got_should_not_change_what_is_stored()
+    {
+        //Arrange
+        var store = CreateStore();
+        await store.SaveFrameAsync(SESSION_ID, new ContestFrame(PRIZE, Resistance));
+        var mine = await store.GetFrameAsync(SESSION_ID);
+        Assert.NotNull(mine);
+
+        //Act
+        mine.SetPlayerAbility("Thief of Nochet", new Rating(15));
+        mine.ApplyModifier(new Modifier(ModifierType.Augment, 5));
+
+        //Assert
+        var stored = await store.GetFrameAsync(SESSION_ID);
+        Assert.NotNull(stored);
+        Assert.Null(stored.PlayerAbilityName);
+        Assert.Empty(stored.Modifiers);
+    }
+
+    [Fact]
     public async Task Frames_for_two_sessions_should_not_collide()
     {
         //Arrange

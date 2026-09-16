@@ -124,6 +124,7 @@ public class ContestHub : Hub<IContestHubClient>
 
             var parsedRating = Rating.Parse(rating);
             frame.SetPlayerAbility(abilityName, parsedRating);
+            await _frameStore.SaveFrameAsync(sessionId, frame);
 
             await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.ResolvingContest);
 
@@ -161,6 +162,7 @@ public class ContestHub : Hub<IContestHubClient>
 
             var modifier = new Modifier(modifierType, value);
             frame.ApplyModifier(modifier);
+            await _frameStore.SaveFrameAsync(sessionId, frame);
 
             await Clients.Group(sessionId).ModifierApplied(type, value);
         }

@@ -194,7 +194,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
     - Make `InMemorySessionStore` pass; keep frames in a second `ConcurrentDictionary` keyed by session id
     - `RemoveAsync` must clear the frame as well as the session
 
-- [ ] **6.5 TEST + IMPLEMENT: the contest a player answers survives being read back** ⚠️ ONE COMMIT
+- [x] **6.5 TEST + IMPLEMENT: the contest a player answers survives being read back** ⚠️ ONE COMMIT
   - **USE COMMAND**: `/test-first when a player submits an ability the store should hold the ability`
   - **Added during 6.2, not in the approved plan.** `ContestHub.SubmitAbility` calls `frame.SetPlayerAbility(...)` and `ApplyModifier` calls `frame.ApplyModifier(...)`, and neither saves. It works only because the in-memory store returns the live instance. Under SQLite the ability and every modifier are dropped and `ResolveContest` can only ever answer *"Contest is not ready for resolution"* — a contest that can never be resolved. This is ADR-0008 D7's argument applied to frames, and Phase 3's defect a second time
   - **Do not split it.** The copy is what makes the missing save visible; ship the copy alone and the default configuration starts losing modifiers. Same rule, same reason, as Phase 3
