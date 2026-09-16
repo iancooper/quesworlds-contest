@@ -261,7 +261,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 ## Phase 8 — Composition (behaviour)
 
-- [ ] **8.1 TEST + IMPLEMENT: the host selects its store by configuration**
+- [x] **8.1 TEST + IMPLEMENT: the host selects its store by configuration**
   - **USE COMMAND**: `/test-first when session store provider is configured should select the matching store`
   - Test location: `tests/QuestWorlds.Web.Tests`
   - Test file: `When_session_store_provider_is_configured_should_select_the_matching_store.cs`
