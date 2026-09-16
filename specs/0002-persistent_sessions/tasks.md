@@ -122,7 +122,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - `public abstract class SessionStoreContract` with `protected abstract IAmASessionStore CreateStore();`
   - New project `tests/QuestWorlds.InMemorySessionStore.Tests` with `When_an_in_memory_store_is_used_as_a_session_store : SessionStoreContract`
 
-- [ ] **5.2 TEST + IMPLEMENT: a store honours the session storage contract**
+- [x] **5.2 TEST + IMPLEMENT: a store honours the session storage contract**
   - **USE COMMAND**: `/test-first when a store is used as a session store it should honour the storage contract`
   - Test location: `tests/QuestWorlds.SessionStore.ContractTests`
   - Test file: `SessionStoreContract.cs` — the one place in this spec where multiple cases share a file, because they are one contract and the shared abstract fixture is the point (`.agent_instructions/testing.md` permits this for shared complex set-up)
