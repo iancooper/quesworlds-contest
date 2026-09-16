@@ -5,24 +5,24 @@ namespace QuestWorlds.Session.Tests;
 public class When_session_state_changes_should_track_correctly
 {
     [Fact]
-    public void New_session_should_start_in_waiting_for_players_state()
+    public async Task New_session_should_start_in_waiting_for_players_state()
     {
         // Arrange
         var coordinator = new SessionCoordinatorBuilder().Build();
 
         // Act
-        var session = coordinator.CreateSession("GM Name", "gm-connection");
+        var session = await coordinator.CreateSessionAsync("GM Name", "gm-connection");
 
         // Assert
         Assert.Equal(SessionState.WaitingForPlayers, session.State);
     }
 
     [Fact]
-    public void TransitionTo_should_update_state()
+    public async Task TransitionTo_should_update_state()
     {
         // Arrange
         var coordinator = new SessionCoordinatorBuilder().Build();
-        var session = coordinator.CreateSession("GM Name", "gm-connection");
+        var session = await coordinator.CreateSessionAsync("GM Name", "gm-connection");
 
         // Act
         session.TransitionTo(SessionState.FramingContest);
@@ -43,11 +43,11 @@ public class When_session_state_changes_should_track_correctly
     }
 
     [Fact]
-    public void Session_can_transition_through_all_states()
+    public async Task Session_can_transition_through_all_states()
     {
         // Arrange
         var coordinator = new SessionCoordinatorBuilder().Build();
-        var session = coordinator.CreateSession("GM Name", "gm-connection");
+        var session = await coordinator.CreateSessionAsync("GM Name", "gm-connection");
 
         // Act & Assert - walk through the full state machine
         Assert.Equal(SessionState.WaitingForPlayers, session.State);

@@ -4,7 +4,6 @@ using QuestWorlds.Framing;
 using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
-using QuestWorlds.Web.Services;
 
 namespace QuestWorlds.Web.Hubs;
 
@@ -18,7 +17,7 @@ public class ContestHub : Hub<IContestHubClient>
     private readonly IDiceRoller _diceRoller;
     private readonly IContestResolver _contestResolver;
     private readonly IOutcomeInterpreter _outcomeInterpreter;
-    private readonly IContestFrameStore _frameStore;
+    private readonly IAmAContestFrameStore _frameStore;
 
     /// <summary>
     /// Creates a new instance of the ContestHub with the required dependencies.
@@ -33,7 +32,7 @@ public class ContestHub : Hub<IContestHubClient>
         IDiceRoller diceRoller,
         IContestResolver contestResolver,
         IOutcomeInterpreter outcomeInterpreter,
-        IContestFrameStore frameStore)
+        IAmAContestFrameStore frameStore)
     {
         _sessionCoordinator = sessionCoordinator;
         _diceRoller = diceRoller;
@@ -49,7 +48,7 @@ public class ContestHub : Hub<IContestHubClient>
     /// <returns>The unique session ID that players can use to join.</returns>
     public async Task<string> CreateSession(string gmName)
     {
-        var session = _sessionCoordinator.CreateSession(gmName, Context.ConnectionId);
+        var session = await _sessionCoordinator.CreateSessionAsync(gmName, Context.ConnectionId);
         await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
         await Clients.Caller.SessionCreated(session.Id);
         return session.Id;
@@ -64,7 +63,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            _sessionCoordinator.JoinSession(sessionId, playerName, Context.ConnectionId);
+            await _sessionCoordinator.JoinSessionAsync(sessionId, playerName, Context.ConnectionId);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
             await Clients.Group(sessionId).PlayerJoined(playerName);
         }
@@ -84,18 +83,18 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var session = _sessionCoordinator.GetSession(sessionId);
+            var session = await _sessionCoordinator.GetSessionAsync(sessionId);
             if (session is null)
             {
                 await Clients.Caller.Error($"Session '{sessionId}' not found");
                 return;
             }
 
-            var resistance = Rating.Parse(resistanceTn);
-            var frame = new ContestFrame(prize, TargetNumber.FromRating(resistance));
-            _frameStore.SetFrame(sessionId, frame);
+            //TODO: We could possibly move Rating.Parse within TargetNumber.FromRating to hide details
+            var frame = new ContestFrame(prize, TargetNumber.FromRating(Rating.Parse(resistanceTn)));
+            await _frameStore.SaveFrameAsync(sessionId, frame);
 
-            session.TransitionTo(SessionState.AwaitingPlayerAbility);
+            await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.AwaitingPlayerAbility);
 
             await Clients.Group(sessionId).ContestFramed(prize, resistanceTn);
             await Clients.Group(sessionId).SessionStateChanged(SessionState.AwaitingPlayerAbility);
@@ -116,7 +115,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var frame = _frameStore.GetFrame(sessionId);
+            var frame = await _frameStore.GetFrameAsync(sessionId);
             if (frame is null)
             {
                 await Clients.Caller.Error("No contest has been framed");
@@ -125,9 +124,9 @@ public class ContestHub : Hub<IContestHubClient>
 
             var parsedRating = Rating.Parse(rating);
             frame.SetPlayerAbility(abilityName, parsedRating);
+            await _frameStore.SaveFrameAsync(sessionId, frame);
 
-            var session = _sessionCoordinator.GetSession(sessionId);
-            session?.TransitionTo(SessionState.ResolvingContest);
+            await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.ResolvingContest);
 
             await Clients.Group(sessionId).AbilitySubmitted(abilityName, rating);
             await Clients.Group(sessionId).SessionStateChanged(SessionState.ResolvingContest);
@@ -148,7 +147,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var frame = _frameStore.GetFrame(sessionId);
+            var frame = await _frameStore.GetFrameAsync(sessionId);
             if (frame is null)
             {
                 await Clients.Caller.Error("No contest has been framed");
@@ -163,6 +162,7 @@ public class ContestHub : Hub<IContestHubClient>
 
             var modifier = new Modifier(modifierType, value);
             frame.ApplyModifier(modifier);
+            await _frameStore.SaveFrameAsync(sessionId, frame);
 
             await Clients.Group(sessionId).ModifierApplied(type, value);
         }
@@ -180,7 +180,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var frame = _frameStore.GetFrame(sessionId);
+            var frame = await _frameStore.GetFrameAsync(sessionId);
             if (frame is null)
             {
                 await Clients.Caller.Error("No contest has been framed");
@@ -202,14 +202,13 @@ public class ContestHub : Hub<IContestHubClient>
             // Interpret outcome
             var outcome = _outcomeInterpreter.Interpret(result, frame);
 
-            var session = _sessionCoordinator.GetSession(sessionId);
-            session?.TransitionTo(SessionState.ShowingOutcome);
+            await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.ShowingOutcome);
 
             await Clients.Group(sessionId).ContestResolved(outcome);
             await Clients.Group(sessionId).SessionStateChanged(SessionState.ShowingOutcome);
 
             // Clear the frame for potential new contest
-            _frameStore.ClearFrame(sessionId);
+            await _frameStore.ClearFrameAsync(sessionId);
         }
         catch (Exception ex)
         {
@@ -223,14 +222,14 @@ public class ContestHub : Hub<IContestHubClient>
     /// <param name="sessionId">The session ID.</param>
     public async Task StartNewContest(string sessionId)
     {
-        var session = _sessionCoordinator.GetSession(sessionId);
+        var session = await _sessionCoordinator.GetSessionAsync(sessionId);
         if (session is null)
         {
             await Clients.Caller.Error($"Session '{sessionId}' not found");
             return;
         }
 
-        session.TransitionTo(SessionState.FramingContest);
+        await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.FramingContest);
         await Clients.Group(sessionId).SessionStateChanged(SessionState.FramingContest);
     }
 }

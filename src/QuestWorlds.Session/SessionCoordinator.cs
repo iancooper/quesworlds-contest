@@ -3,38 +3,50 @@ namespace QuestWorlds.Session;
 internal class SessionCoordinator : ISessionCoordinator
 {
     private readonly ISessionIdGenerator _idGenerator;
-    private readonly ISessionRepository _repository;
+    private readonly IAmASessionStore _store;
 
-    public SessionCoordinator(ISessionIdGenerator idGenerator, ISessionRepository repository)
+    public SessionCoordinator(ISessionIdGenerator idGenerator, IAmASessionStore store)
     {
         _idGenerator = idGenerator;
-        _repository = repository;
+        _store = store;
     }
 
-    public Session CreateSession(string gmName, string connectionId)
+    public async Task<Session> CreateSessionAsync(string gmName, string connectionId, CancellationToken cancellationToken = default)
     {
         var sessionId = _idGenerator.Generate();
         var gm = new Participant(gmName, ParticipantRole.GM, connectionId);
         var session = new Session(sessionId, gm);
-        _repository.Add(session);
+        await _store.SaveAsync(session, cancellationToken);
         return session;
     }
 
-    public Session? GetSession(string sessionId) => _repository.Get(sessionId);
+    public Task<Session?> GetSessionAsync(string sessionId, CancellationToken cancellationToken = default) =>
+        _store.GetAsync(sessionId, cancellationToken);
 
-    public void JoinSession(string sessionId, string playerName, string connectionId)
+    public async Task JoinSessionAsync(string sessionId, string playerName, string connectionId, CancellationToken cancellationToken = default)
     {
-        var session = _repository.Get(sessionId);
+        var session = await _store.GetAsync(sessionId, cancellationToken);
         if (session is null)
             throw new InvalidOperationException($"Session '{sessionId}' not found");
 
         var player = new Participant(playerName, ParticipantRole.Player, connectionId);
         session.AddPlayer(player);
+        await _store.SaveAsync(session, cancellationToken);
     }
 
-    public IEnumerable<string> GetParticipantConnectionIds(string sessionId)
+    public async Task TransitionSessionStateAsync(string sessionId, SessionState newState, CancellationToken cancellationToken = default)
     {
-        var session = _repository.Get(sessionId);
+        var session = await _store.GetAsync(sessionId, cancellationToken);
+        if (session is null)
+            throw new InvalidOperationException($"Session '{sessionId}' not found");
+
+        session.TransitionTo(newState);
+        await _store.SaveAsync(session, cancellationToken);
+    }
+
+    public async Task<IEnumerable<string>> GetParticipantConnectionIdsAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        var session = await _store.GetAsync(sessionId, cancellationToken);
         if (session is null)
             return Enumerable.Empty<string>();
 

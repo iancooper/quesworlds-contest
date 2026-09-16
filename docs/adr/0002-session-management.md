@@ -4,7 +4,23 @@ Date: 2026-01-26
 
 ## Status
 
-Accepted
+Accepted — **superseded in part** by [ADR-0007](0007-session-storage-port.md), [ADR-0008](0008-session-store-module-composition.md), [ADR-0009](0009-sqlite-session-store.md) and [ADR-0010](0010-contest-frame-storage-port.md).
+
+The Session module's shape, roles, session id design and SignalR integration all stand. What no longer holds is everything this ADR says about **storage**:
+
+| This ADR says | Now |
+|---|---|
+| `internal interface ISessionRepository` — "implementation detail for storage" | **Public**, and renamed `IAmASessionStore`. The store is another module, and a module that cannot name its dependency on another module is incomplete rather than narrower (ADR-0007 D1, D2) |
+| `internal class InMemorySessionRepository` | Moved **out of `QuestWorlds.Session`** into `QuestWorlds.InMemorySessionStore` (ADR-0008 D1) |
+| `AddSessionModule()` registers the repository | It registers **no** store. The host chooses one; `QuestWorlds.Web` selects by configuration (ADR-0008 D2, D4) |
+| `ISessionCoordinator` is synchronous | Async, because the port is (ADR-0007 D3) |
+| "Sessions are ephemeral (no persistence beyond the game)" | Sessions persist if the deployment says so. That was a requirement, not a property of the design |
+| *Alternatives Considered → 1. Database-Backed Sessions — Rejected, "overkill for MVP"* | **Reversed.** `QuestWorlds.SqliteSessionStore` ships (ADR-0009). The MVP reasoning was sound at the time; what changed is that the substitution seam now exists, so the store is no longer a property of the module |
+| *Testing Strategy* — "use `InternalsVisibleTo` only if absolutely necessary" | Not necessary. A test substitutes storage the way it substitutes any other module (ADR-0008 D5) |
+
+Two things this ADR did not anticipate are also now settled: `Session` gained a `Rehydrate` factory so a store in another assembly can reconstruct it (ADR-0007 D6), and `IContestFrameStore` moved out of `QuestWorlds.Web` into `QuestWorlds.Framing`, stored alongside the session by one class (ADR-0010).
+
+**Read the rest of this document as of January 2026.** It is left unedited below.
 
 ## Context
 
@@ -344,6 +360,10 @@ Distributed cache for horizontal scaling. Rejected because:
   - (Planned) 0003-framing-module.md - Contest framing
   - (Planned) 0004-resolution-module.md - Dice resolution
   - (Planned) 0005-outcome-module.md - Outcome determination
+  - [0007-session-storage-port.md](0007-session-storage-port.md) — supersedes this ADR's storage decisions
+  - [0008-session-store-module-composition.md](0008-session-store-module-composition.md) — where the stores live
+  - [0009-sqlite-session-store.md](0009-sqlite-session-store.md) — reverses the rejection of database-backed sessions
+  - [0010-contest-frame-storage-port.md](0010-contest-frame-storage-port.md) — the frame stored alongside the session
 - External references:
   - [SignalR documentation](https://docs.microsoft.com/aspnet/core/signalr/)
   - [ConcurrentDictionary best practices](https://docs.microsoft.com/dotnet/api/system.collections.concurrent.concurrentdictionary-2)

@@ -2,10 +2,18 @@ using QuestWorlds.DiceRoller;
 using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
+using QuestWorlds.Web;
 using QuestWorlds.Web.Hubs;
-using QuestWorlds.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Choosing a store is the host's job, and a host that forgets should find out at startup rather
+// than on the first hub call, mid-game. Validation names the missing IAmASessionStore (ADR-0008 D3).
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateOnBuild = true;
+    options.ValidateScopes = true;
+});
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -13,12 +21,14 @@ builder.Services.AddSignalR();
 
 // Register QuestWorlds modules
 builder.Services.AddSessionModule();
+
+// Which store, and where its database lives, is a deployment decision — so it is made here, from
+// configuration, and nowhere else. Absent configuration keeps today's behaviour (ADR-0008 D4).
+builder.Services.AddConfiguredSessionStore(builder.Configuration);
+
 builder.Services.AddDiceRollerModule();
 builder.Services.AddResolutionModule();
 builder.Services.AddOutcomeModule();
-
-// Register web services
-builder.Services.AddSingleton<IContestFrameStore, InMemoryContestFrameStore>();
 
 var app = builder.Build();
 

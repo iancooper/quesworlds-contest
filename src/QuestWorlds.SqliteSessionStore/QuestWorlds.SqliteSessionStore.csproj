@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The ADO.NET provider used directly, no ORM (ADR-0009 D1). 10.0.12 rather than the 10.0.2 the
+         Microsoft.Extensions.* packages sit on: earlier 10.0.x pull SQLitePCLRaw 2.1.11, which has a
+         published advisory (NU1903), and 10.0.12 is the first to take 2.1.12. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuestWorlds.Session\QuestWorlds.Session.csproj" />
+    <ProjectReference Include="..\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
+  </ItemGroup>
+
+</Project>

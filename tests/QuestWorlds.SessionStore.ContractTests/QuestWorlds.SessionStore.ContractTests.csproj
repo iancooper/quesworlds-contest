@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- A test-support library, not a test project: it has no store to run the contract against.
+         Each store's own test project inherits the suite and runs it (ADR-0008 D5). -->
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- The two modules that declare the ports, and nothing else. The suite must never reference a
+       store project: it is written against the ports, and referencing one store would let a case
+       depend on that store's implementation (ADR-0008 D5). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuestWorlds.Session\QuestWorlds.Session.csproj" />
+    <ProjectReference Include="..\..\src\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
+  </ItemGroup>
+
+</Project>
