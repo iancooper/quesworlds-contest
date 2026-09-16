@@ -116,7 +116,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 ## Phase 5 — The store contract, as one suite (behaviour)
 
-- [ ] **5.1 Create the contract suite** *(structural scaffolding)*
+- [x] **5.1 Create the contract suite** *(structural scaffolding)*
   - New test-support project `tests/QuestWorlds.SessionStore.ContractTests`, added to `QuestWorlds.slnx`
   - References `QuestWorlds.Session` and xUnit only — **never** either store project (ADR-0008 D5)
   - `public abstract class SessionStoreContract` with `protected abstract IAmASessionStore CreateStore();`

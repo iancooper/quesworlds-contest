@@ -11,9 +11,11 @@
   <Folder Name="/tests/">
     <Project Path="tests/QuestWorlds.DiceRoller.Tests/QuestWorlds.DiceRoller.Tests.csproj" />
     <Project Path="tests/QuestWorlds.Framing.Tests/QuestWorlds.Framing.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.InMemorySessionStore.Tests/QuestWorlds.InMemorySessionStore.Tests.csproj" />
     <Project Path="tests/QuestWorlds.Outcome.Tests/QuestWorlds.Outcome.Tests.csproj" />
     <Project Path="tests/QuestWorlds.Resolution.Tests/QuestWorlds.Resolution.Tests.csproj" />
     <Project Path="tests/QuestWorlds.Session.Tests/QuestWorlds.Session.Tests.csproj" />
+    <Project Path="tests/QuestWorlds.SessionStore.ContractTests/QuestWorlds.SessionStore.ContractTests.csproj" />
     <Project Path="tests/QuestWorlds.Web.Tests/QuestWorlds.Web.Tests.csproj" />
   </Folder>
 </Solution>
