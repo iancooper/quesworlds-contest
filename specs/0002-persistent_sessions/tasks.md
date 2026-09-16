@@ -320,10 +320,20 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   `IAmAContestFrameStore` in `Framing`, zero project references in either), and corrects the Design
   paragraph's claim that persistence is still hypothetical.
 
-- [ ] **9.3 Close the loop**
+- [x] **9.3 Close the loop**
   - Walk the 20 acceptance criteria in `requirements.md` and tick them off against real tests
   - Push `feature/2-session-storage-port` and open the PR
   - Close issue #2
+
+  The walk found **AC18 half-evidenced** — the frame half covered by the contract suite, the modifier
+  rows resting on a cascade nothing asserted. Closed by
+  `When_a_session_is_removed_should_leave_no_orphaned_rows`, so all 22 criteria are now ticked against
+  a test. Branch pushed (27 commits); PR #3 out of draft with a summary comment; issue #2 corrected
+  where it publishes `Web` at Ce 6.
+
+  **Issue #2 is not closed by hand.** PR #3's body carries `Closes #2`, so merging closes it — the
+  same outcome, correctly sequenced. Closing it while the work is not on `main` would be closing it
+  early.
 
 ---
 
