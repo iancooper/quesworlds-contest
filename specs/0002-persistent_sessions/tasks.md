@@ -194,6 +194,23 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
     - Make `InMemorySessionStore` pass; keep frames in a second `ConcurrentDictionary` keyed by session id
     - `RemoveAsync` must clear the frame as well as the session
 
+- [ ] **6.5 TEST + IMPLEMENT: the contest a player answers survives being read back** ⚠️ ONE COMMIT
+  - **USE COMMAND**: `/test-first when a player submits an ability the store should hold the ability`
+  - **Added during 6.2, not in the approved plan.** `ContestHub.SubmitAbility` calls `frame.SetPlayerAbility(...)` and `ApplyModifier` calls `frame.ApplyModifier(...)`, and neither saves. It works only because the in-memory store returns the live instance. Under SQLite the ability and every modifier are dropped and `ResolveContest` can only ever answer *"Contest is not ready for resolution"* — a contest that can never be resolved. This is ADR-0008 D7's argument applied to frames, and Phase 3's defect a second time
+  - **Do not split it.** The copy is what makes the missing save visible; ship the copy alone and the default configuration starts losing modifiers. Same rule, same reason, as Phase 3
+  - Test location: `tests/QuestWorlds.Web.Tests` for the write-back, `tests/QuestWorlds.SessionStore.ContractTests` for the copy obligation
+  - Test should verify:
+    - A player submits an ability, and the frame **read back from the store** has it — the web test, which fails before the fix
+    - A modifier applied through the hub is in the frame read back, and two modifiers are both there, in order
+    - `GetFrameAsync` returns a **copy**: mutate what comes back, do not save, read again, and the stored frame is unchanged — the contract case, mirroring AC19 for sessions
+    - A contest framed, answered, modified and resolved still reaches `ContestResolved` — the whole workflow, which is what silently breaks
+  - **⛔ STOP HERE - WAIT FOR USER APPROVAL in IDE before implementing**
+  - Implementation should:
+    - Make `InMemorySessionStore.GetFrameAsync` return `ContestFrame.Rehydrate(...)`, exactly as `GetAsync` returns `Session.Rehydrate(...)`
+    - Add `await _frameStore.SaveFrameAsync(sessionId, frame, ct)` after the mutation in `SubmitAbility` and in `ApplyModifier`
+    - Audit every hub path that mutates a frame, not just those two — the defect is a missing save, so a second missing save is the same bug
+  - **Commit**: behavioural — on its own, and both halves together
+
 ---
 
 ## Phase 7 — The SQLite store
@@ -297,9 +314,9 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
                                         │
                      ┌──────────────────┘
                      ▼
-              6.1 ─► 6.2 ─► 6.3 ─► 6.4
-                                    │
-                     ┌──────────────┘
+              6.1 ─► 6.2 ─► 6.3 ─► 6.4 ─► [6.5 ⚠ one commit]
+                                                │
+                     ┌──────────────────────────┘
                      ▼
               7.1 ─► 7.2 ─► 7.3 ─► 7.4 ─► 8.1 ─► 8.2 ─► 9.x
 ```
@@ -309,6 +326,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 - **4.1 gates 4.2** — the store cannot leave the assembly until the port is public
 - **5.2 and 6.4 gate 7.2** — the contract is the SQLite store's specification, so it must exist first
 - **6.2 gates 7.1** — the SQLite store implements the frame port, so the port must exist
+- **6.5 gates 7.2** — a SQLite store returning copies into a hub that does not save back is a contest that cannot be resolved
 - **8.1 needs both stores** — it chooses between them
 
 ## Risks
@@ -318,6 +336,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 | 3.1 split across commits | `JoinSession` loses players in the **default** configuration, not just SQLite | Phase 3 is one commit. This is the note at the top of this file for a reason |
 | A store class registered twice | Two instances; a frame the session store cannot see. Silent, and only in composition | 6.3 asserts `ReferenceEquals`; every store must satisfy it |
 | A coordinator path mutates without saving | The same defect, somewhere else | 3.1 audits every mutating path, not just `JoinSession` |
+| A **hub** path mutates a **frame** without saving | The ability and modifiers vanish under SQLite; the contest can never resolve. Invisible while the in-memory store returns live references | 6.5, added during 6.2. One commit, copy and write-back together, and it audits every mutating hub path |
 | A field added to `Session`/`ContestFrame` later, not persisted | Silent data loss under SQLite only | 7.4 asserts whole-object equality, so a new field fails rather than vanishes |
 | Enum reordered later | Stored rows silently reinterpreted | Names not ordinals (ADR-0009 D3); 7.4 covers every value |
 | Structural and behavioural mixed in a commit | Review cannot tell which change broke a test | Only 3.1, and the implement halves of the TEST + IMPLEMENT tasks, are behavioural |
