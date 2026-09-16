@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\QuestWorlds.Session\QuestWorlds.Session.csproj" />
     <ProjectReference Include="..\QuestWorlds.InMemorySessionStore\QuestWorlds.InMemorySessionStore.csproj" />
+    <ProjectReference Include="..\QuestWorlds.SqliteSessionStore\QuestWorlds.SqliteSessionStore.csproj" />
     <ProjectReference Include="..\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
     <ProjectReference Include="..\QuestWorlds.Resolution\QuestWorlds.Resolution.csproj" />
     <ProjectReference Include="..\QuestWorlds.Outcome\QuestWorlds.Outcome.csproj" />

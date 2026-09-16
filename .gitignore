@@ -429,3 +429,8 @@ specs/0001-questworlds-contest/QuestWorlds_on_a_Page.pdf
 *.db
 *.db-wal
 *.db-shm
+
+# The development SQLite session store (ADR-0009 D7)
+questworlds-sessions.db
+questworlds-sessions.db-shm
+questworlds-sessions.db-wal
