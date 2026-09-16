@@ -224,7 +224,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - WAL mode; a connection per operation (D5)
   - Add `*.db`, `*.db-wal`, `*.db-shm` to `.gitignore`
 
-- [ ] **7.2 Implement both ports over SQLite** *(test-after, driven by the contract suite)*
+- [x] **7.2 Implement both ports over SQLite** *(test-after, driven by the contract suite)*
   - New project `tests/QuestWorlds.SqliteSessionStore.Tests` with `When_a_sqlite_store_is_used_as_a_session_store : SessionStoreContract`, each test owning a temp database file and deleting it on dispose (ADR-0009 D7)
   - Make every inherited case pass — the suite is the specification, already approved in 5.2 and 6.4
   - Save replaces the whole aggregate in **one transaction**: upsert the row, delete and reinsert children (D4)

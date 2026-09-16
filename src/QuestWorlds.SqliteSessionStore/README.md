@@ -28,6 +28,8 @@ this one exists.
 
 | Type | Description |
 |------|-------------|
+| `SqliteSessionStore` | Both ports over one database: sessions and their contest frames |
+| `SessionRecordMapper` | Rows back into `Session` and `ContestFrame`, and how an enum is spelled |
 | `SqliteSessionStoreInitialiser` | An `IHostedService` that creates the schema and sets WAL mode, once, at startup |
 | `ServiceCollectionExtensions` | `AddSqliteSessionStore(connectionString)` |
 
@@ -56,6 +58,10 @@ session's contest frame with its modifiers.
 | `ContestFrames` | One row per session: prize, resistance, and the player's ability if it has arrived |
 | `ContestModifiers` | The frame's modifiers, ordered by `Ordinal` |
 
+`Participants` cascades from `Sessions`, and `ContestModifiers` from `ContestFrames`. A frame is *not*
+constrained to a stored session: the port accepts a frame for a session the store does not hold, so
+`RemoveAsync` deletes a session's frame explicitly, in the same transaction (ADR-0009 D2, amended).
+
 ## Design Decisions
 
 - **`Microsoft.Data.Sqlite` used directly, no ORM.** One aggregate, saved whole and loaded whole,
@@ -73,6 +79,9 @@ session's contest frame with its modifiers.
   and nothing else, which is what makes it safe as a singleton (ADR-0009 D5)
 - **Where the database lives is the host's decision**: the module takes a connection string and does
   not read configuration or default to a path (ADR-0009 D7)
+- **A save replaces the whole aggregate** in one transaction — upsert the row, delete and reinsert the
+  children. Diffing would need identity for a value object and would put change tracking in the store,
+  which is the coordinator's job (ADR-0009 D4)
 
 ## Limitations
 

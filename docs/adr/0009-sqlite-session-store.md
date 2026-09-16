@@ -29,7 +29,7 @@ Everything decided here is behind the port. A different answer to any of it chan
 
 ## Decision
 
-**`Microsoft.Data.Sqlite` over a two-table schema, replacing the whole aggregate on save, with the schema created once at startup.**
+**`Microsoft.Data.Sqlite` over a normalized schema, replacing the whole aggregate on save, with the schema created once at startup.**
 
 ### D1. `Microsoft.Data.Sqlite`, not EF Core
 
@@ -39,7 +39,7 @@ The ADO.NET provider, used directly. No ORM.
 
 *The cost*: the mapping is hand-written. For this aggregate that is roughly sixty lines, and those sixty lines are the interesting part of the demonstration rather than boilerplate hidden behind an ORM.
 
-### D2. Two tables, with the GM stored as a participant
+### D2. Four tables, with the GM stored as a participant
 
 ```sql
 CREATE TABLE IF NOT EXISTS Sessions (
@@ -75,8 +75,7 @@ CREATE TABLE IF NOT EXISTS ContestFrames (
     ResistanceModifier INTEGER NOT NULL,
     PlayerAbilityName  TEXT NULL,
     PlayerRatingBase   INTEGER NULL,
-    PlayerRatingMasteries INTEGER NULL,
-    FOREIGN KEY (SessionId) REFERENCES Sessions(Id) ON DELETE CASCADE
+    PlayerRatingMasteries INTEGER NULL
 );
 
 CREATE TABLE IF NOT EXISTS ContestModifiers (
@@ -93,7 +92,15 @@ CREATE TABLE IF NOT EXISTS ContestModifiers (
 
 *Why the player's ability and rating are nullable*: a frame exists from the moment the GM sets a prize and resistance, and the player's side arrives later. The nullability in the schema is the nullability already on `ContestFrame`.
 
-*Why the cascade runs from `Sessions`*: removing a session removes its frame and that frame's modifiers. A frame has no meaning without its session.
+*Why the cascade runs from `Sessions` to `Participants`, and from `ContestFrames` to `ContestModifiers`*: a participant has no meaning without its session, and a modifier none without its frame. Both are written and deleted with their parent, so the database can be trusted to keep them together.
+
+**Amended during task 7.2**: `ContestFrames` carries **no foreign key to `Sessions`**, though this decision first said it should, and the cascade that removes a frame with its session is therefore a statement in `RemoveAsync` rather than a constraint.
+
+*Why*: the frame port accepts a frame for a session the store does not hold. `IAmAContestFrameStore` says nothing about a session having to exist first, `InMemorySessionStore` accepts one, and four cases of the contract suite approved in task 6.4 save a frame without saving a session — the store is an information holder that decides nothing (ADR-0007). With the foreign key enforced, all four failed against SQLite alone with `FOREIGN KEY constraint failed`, which is precisely the store-to-store divergence the shared contract exists to prevent: one store rejecting what the other accepts.
+
+*What was rejected*: tightening the port so that a frame may only be saved for a stored session. It would mean reopening an approved contract suite to impose an ordering obligation on every caller that no application path needs — `ContestHub.FrameContest` already reads the session before it saves a frame — in exchange for a constraint the store can uphold itself.
+
+*What it costs*: removing a session's frame is now `RemoveAsync`'s responsibility, in the same transaction as the session. It is a line of code that can be deleted by accident where a constraint could not be. `Removing_a_session_should_remove_its_frame_too` is the case that catches that, and it was confirmed red against a store with the delete removed. `ContestModifiers` still cascades from `ContestFrames`, so a frame's modifiers cannot be orphaned.
 
 ### D3. Enums are stored as text, not integers
 
@@ -267,6 +274,7 @@ No behavioural change to existing code. This module is additive.
 | Two writers interleave and one save is lost | Not solved here — the lost-update risk recorded in ADR-0007 stands, and SQLite's single-writer lock narrows but does not close it. Needs optimistic concurrency, which is a separate decision |
 | Someone concludes from this module that sessions now survive a restart *usefully* | D8 states the limitation in the ADR, and it should be stated wherever the feature is described |
 | Tests leave temp database files behind | Each test owns its file and deletes it on dispose |
+| `RemoveAsync`'s explicit frame delete is removed, orphaning frames | The contract case `Removing_a_session_should_remove_its_frame_too`, which is what the D2 amendment leans on now that no foreign key enforces it |
 | The development database file is committed by accident | `questworlds-sessions.db` and its `-wal`/`-shm` companions are added to `.gitignore` |
 | Someone switches the provider to `Sqlite` and expects a mid-session restart to be seamless | D8 — the session reloads, the connections do not. Say so in the README beside the setting |
 

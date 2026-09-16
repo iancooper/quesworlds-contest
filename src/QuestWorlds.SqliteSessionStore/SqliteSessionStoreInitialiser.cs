@@ -28,6 +28,13 @@ public class SqliteSessionStoreInitialiser : IHostedService
     //
     // Ordinal columns exist because Session.Players and ContestFrame.Modifiers are ordered lists and a
     // table is a set; they are what makes a reloaded aggregate equal to the one that was stored.
+    //
+    // ContestFrames deliberately carries no foreign key to Sessions, though ADR-0009 D2 first said it
+    // should. The frame port accepts a frame for a session the store does not hold — the in-memory
+    // store does, and four cases of the approved contract suite rely on it — so enforcing the
+    // reference here would make one store reject what the other accepts, which is the divergence the
+    // shared contract exists to prevent. SqliteSessionStore.RemoveAsync deletes the frame explicitly
+    // instead, in the same transaction as the session, so nothing is orphaned. See ADR-0009 D2.
     private const string SCHEMA = """
         CREATE TABLE IF NOT EXISTS Sessions (
             Id     TEXT PRIMARY KEY NOT NULL,
@@ -52,8 +59,7 @@ public class SqliteSessionStoreInitialiser : IHostedService
             ResistanceModifier    INTEGER NOT NULL,
             PlayerAbilityName     TEXT NULL,
             PlayerRatingBase      INTEGER NULL,
-            PlayerRatingMasteries INTEGER NULL,
-            FOREIGN KEY (SessionId) REFERENCES Sessions(Id) ON DELETE CASCADE
+            PlayerRatingMasteries INTEGER NULL
         );
 
         CREATE TABLE IF NOT EXISTS ContestModifiers (

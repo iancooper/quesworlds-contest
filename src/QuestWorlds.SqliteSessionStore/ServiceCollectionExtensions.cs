@@ -1,6 +1,8 @@
 namespace QuestWorlds.SqliteSessionStore;
 
 using Microsoft.Extensions.DependencyInjection;
+using QuestWorlds.Framing;
+using QuestWorlds.Session;
 
 /// <summary>
 /// Extension methods for registering the SQLite session store with dependency injection.
@@ -32,9 +34,13 @@ public static class ServiceCollectionExtensions
         // database (ADR-0009 D6).
         services.AddHostedService(_ => new SqliteSessionStoreInitialiser(connectionString));
 
-        // The store itself, forwarded to from both ports by one concrete singleton, arrives with
-        // task 7.2. There is nothing to register behind IAmASessionStore yet, so a host that calls
-        // this today fails its ValidateOnBuild check — loudly, which is the intent.
+        // One concrete singleton, both ports forwarded to it. Registering the class against each port
+        // instead gives an instance per port, and for a store holding a connection string that is not
+        // obviously wrong — both instances reach the same database — which is exactly why it must be
+        // got right here rather than noticed later (ADR-0010 D4).
+        services.AddSingleton(_ => new SqliteSessionStore(connectionString));
+        services.AddSingleton<IAmASessionStore>(sp => sp.GetRequiredService<SqliteSessionStore>());
+        services.AddSingleton<IAmAContestFrameStore>(sp => sp.GetRequiredService<SqliteSessionStore>());
         return services;
     }
 }

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <!-- For ClearAllPools when a test deletes the database file it owns (ADR-0009 D7) -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuestWorlds.SqliteSessionStore\QuestWorlds.SqliteSessionStore.csproj" />
+    <ProjectReference Include="..\..\src\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
+    <ProjectReference Include="..\QuestWorlds.SessionStore.ContractTests\QuestWorlds.SessionStore.ContractTests.csproj" />
+  </ItemGroup>
+
+</Project>
