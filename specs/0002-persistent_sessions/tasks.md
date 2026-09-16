@@ -277,11 +277,26 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
     - Add `SessionStore:Provider` and `ConnectionStrings:SessionStore` to `appsettings.Development.json`, defaulting the provider to `InMemory` (ADR-0009 D7)
     - An unrecognised value throws — never a silent fallback to in-memory
 
-- [ ] **8.2 Confirm the switch by hand** *(manual verification — the demo this feature exists for)*
+- [x] **8.2 Confirm the switch by hand** *(manual verification — the demo this feature exists for)*
   - Run with the default settings; play through a contest; restart; confirm the session is gone, as today
   - Set `SessionStore:Provider` to `Sqlite`; play through to mid-contest; restart the app
   - Confirm the session **and its frame** are still in the database and load
   - Confirm the known limitation directly: participants cannot be messaged until they reconnect, because their `ConnectionId`s are stale (ADR-0009 D8). This is expected, and is what the next spec is for
+
+  **What was verified** (session `8H2HYM`, 2026-09-16): played to mid-contest under `Sqlite`, restarted
+  the app, and read the live `questworlds-sessions.db` back through `SqliteSessionStore` from outside
+  the process. The session came back — state `ResolvingContest`, its GM and both players — and so did
+  its frame, with prize, ability, and `IsReadyForResolution` true. The restarted host was confirmed to
+  be on SQLite, not the default.
+
+  **What could not be verified through the UI, and why it is not a defect in this spec**: nothing in
+  the application reattaches a client to an existing session. `Pages/GM/Index.cshtml` only offers
+  `CreateSession`; `Pages/GM/Contest.cshtml` takes a `sessionId` from the query string but never joins
+  the SignalR group or asks for state; and `ContestHub.JoinSession` calls `AddPlayer` unconditionally,
+  so a returning player is stored as a *second* participant rather than recognised. The restored data
+  is whole and only the transport is dead — which is exactly the reconnection work the follow-up issue
+  covers, and is a stronger form of the same limitation ADR-0009 D8 already documents. 9.2 documents it
+  beside the setting.
 
 ---
 
