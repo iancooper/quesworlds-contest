@@ -144,7 +144,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 > Closes the defect design review found: with SQLite selectable, a restart restored a session without its contest. See ADR-0010.
 
-- [ ] **6.1 TEST + IMPLEMENT: a contest frame can be reconstructed from its stored parts**
+- [x] **6.1 TEST + IMPLEMENT: a contest frame can be reconstructed from its stored parts**
   - **USE COMMAND**: `/test-first when rehydrating a contest frame should restore prize resistance ability and modifiers`
   - Test location: `tests/QuestWorlds.Framing.Tests`
   - Test file: `When_rehydrating_a_contest_frame_should_restore_prize_resistance_ability_and_modifiers.cs`

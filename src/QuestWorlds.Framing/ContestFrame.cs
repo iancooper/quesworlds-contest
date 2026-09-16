@@ -49,6 +49,43 @@ public class ContestFrame
         Resistance = resistance;
     }
 
+    private ContestFrame(
+        string prize,
+        TargetNumber resistance,
+        string? playerAbilityName,
+        Rating? playerRating,
+        IEnumerable<Modifier> modifiers)
+    {
+        Prize = prize;
+        Resistance = resistance;
+        PlayerAbilityName = playerAbilityName;
+        PlayerRating = playerRating;
+        _modifiers.AddRange(modifiers);
+    }
+
+    /// <summary>
+    /// Rebuilds a contest frame from parts that were previously stored, restoring it as it was rather than framing it anew.
+    /// </summary>
+    /// <param name="prize">The stored prize.</param>
+    /// <param name="resistance">The stored resistance <see cref="TargetNumber"/>.</param>
+    /// <param name="playerAbilityName">The stored ability name, or null if the player has not answered yet.</param>
+    /// <param name="playerRating">The stored <see cref="Rating"/>, or null if the player has not answered yet.</param>
+    /// <param name="modifiers">The stored <see cref="Modifier"/>s, restored in the order supplied.</param>
+    /// <returns>A <see cref="ContestFrame"/> holding the supplied prize, resistance, ability and modifiers.</returns>
+    /// <remarks>
+    /// For use by a store loading a frame, not by a GM framing one; use the constructor for that.
+    /// The parts are accepted as given: the guards on the constructor and on <see cref="SetPlayerAbility"/>
+    /// are not re-run, because they were satisfied when the GM framed the contest, and reading a row should
+    /// not re-decide a decision already taken (ADR-0010 D3).
+    /// </remarks>
+    public static ContestFrame Rehydrate(
+        string prize,
+        TargetNumber resistance,
+        string? playerAbilityName,
+        Rating? playerRating,
+        IEnumerable<Modifier> modifiers) =>
+        new(prize, resistance, playerAbilityName, playerRating, modifiers);
+
     /// <summary>
     /// Sets the player's ability for this contest.
     /// </summary>
