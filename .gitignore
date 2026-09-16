@@ -423,3 +423,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 specs/0001-questworlds-contest/QuestWorlds_on_a_Page.pdf
+
+# SQLite databases written by QuestWorlds.SqliteSessionStore, including a development
+# questworlds-sessions.db and the temp files each test owns (ADR-0009 D7)
+*.db
+*.db-wal
+*.db-shm

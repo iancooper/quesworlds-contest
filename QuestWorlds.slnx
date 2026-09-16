@@ -6,6 +6,7 @@
     <Project Path="src/QuestWorlds.Outcome/QuestWorlds.Outcome.csproj" />
     <Project Path="src/QuestWorlds.Resolution/QuestWorlds.Resolution.csproj" />
     <Project Path="src/QuestWorlds.Session/QuestWorlds.Session.csproj" />
+    <Project Path="src/QuestWorlds.SqliteSessionStore/QuestWorlds.SqliteSessionStore.csproj" />
     <Project Path="src/QuestWorlds.Web/QuestWorlds.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">

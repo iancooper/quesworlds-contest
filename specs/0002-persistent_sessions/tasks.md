@@ -217,7 +217,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 > `.agent_instructions/testing.md` accepts **test-after for I/O implementations**, so 7.2's mapping is written against the inherited contract suite rather than test-first. The behaviours unique to persistence, 7.3 and 7.4, are still test-first.
 
-- [ ] **7.1 Create `QuestWorlds.SqliteSessionStore`** *(structural)*
+- [x] **7.1 Create `QuestWorlds.SqliteSessionStore`** *(structural)*
   - New project under `src/`, added to `QuestWorlds.slnx`; references `QuestWorlds.Session`, `QuestWorlds.Framing`, `Microsoft.Data.Sqlite` (ADR-0009 D1)
   - Schema per ADR-0009 D2: `Sessions`, `Participants`, `ContestFrames`, `ContestModifiers`; enums stored as **names**, not ordinals (D3)
   - Initialiser as an `IHostedService` registered by `AddSqliteSessionStore(connectionString)`, plus a directly callable `InitialiseAsync` for tests (D6)
