@@ -4,7 +4,6 @@ using QuestWorlds.Framing;
 using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
-using QuestWorlds.Web.Services;
 
 namespace QuestWorlds.Web.Hubs;
 
@@ -18,7 +17,7 @@ public class ContestHub : Hub<IContestHubClient>
     private readonly IDiceRoller _diceRoller;
     private readonly IContestResolver _contestResolver;
     private readonly IOutcomeInterpreter _outcomeInterpreter;
-    private readonly IContestFrameStore _frameStore;
+    private readonly IAmAContestFrameStore _frameStore;
 
     /// <summary>
     /// Creates a new instance of the ContestHub with the required dependencies.
@@ -33,7 +32,7 @@ public class ContestHub : Hub<IContestHubClient>
         IDiceRoller diceRoller,
         IContestResolver contestResolver,
         IOutcomeInterpreter outcomeInterpreter,
-        IContestFrameStore frameStore)
+        IAmAContestFrameStore frameStore)
     {
         _sessionCoordinator = sessionCoordinator;
         _diceRoller = diceRoller;
@@ -93,7 +92,7 @@ public class ContestHub : Hub<IContestHubClient>
 
             //TODO: We could possibly move Rating.Parse within TargetNumber.FromRating to hide details
             var frame = new ContestFrame(prize, TargetNumber.FromRating(Rating.Parse(resistanceTn)));
-            _frameStore.SetFrame(sessionId, frame);
+            await _frameStore.SaveFrameAsync(sessionId, frame);
 
             await _sessionCoordinator.TransitionSessionStateAsync(sessionId, SessionState.AwaitingPlayerAbility);
 
@@ -116,7 +115,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var frame = _frameStore.GetFrame(sessionId);
+            var frame = await _frameStore.GetFrameAsync(sessionId);
             if (frame is null)
             {
                 await Clients.Caller.Error("No contest has been framed");
@@ -147,7 +146,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var frame = _frameStore.GetFrame(sessionId);
+            var frame = await _frameStore.GetFrameAsync(sessionId);
             if (frame is null)
             {
                 await Clients.Caller.Error("No contest has been framed");
@@ -179,7 +178,7 @@ public class ContestHub : Hub<IContestHubClient>
     {
         try
         {
-            var frame = _frameStore.GetFrame(sessionId);
+            var frame = await _frameStore.GetFrameAsync(sessionId);
             if (frame is null)
             {
                 await Clients.Caller.Error("No contest has been framed");
@@ -207,7 +206,7 @@ public class ContestHub : Hub<IContestHubClient>
             await Clients.Group(sessionId).SessionStateChanged(SessionState.ShowingOutcome);
 
             // Clear the frame for potential new contest
-            _frameStore.ClearFrame(sessionId);
+            await _frameStore.ClearFrameAsync(sessionId);
         }
         catch (Exception ex)
         {

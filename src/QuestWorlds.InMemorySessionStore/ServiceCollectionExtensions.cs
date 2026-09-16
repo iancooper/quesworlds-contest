@@ -1,6 +1,7 @@
 namespace QuestWorlds.InMemorySessionStore;
 
 using Microsoft.Extensions.DependencyInjection;
+using QuestWorlds.Framing;
 using QuestWorlds.Session;
 
 /// <summary>
@@ -9,7 +10,8 @@ using QuestWorlds.Session;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers <see cref="InMemorySessionStore"/> as the deployment's <see cref="IAmASessionStore"/>.
+    /// Registers <see cref="InMemorySessionStore"/> as the deployment's <see cref="IAmASessionStore"/>
+    /// and <see cref="IAmAContestFrameStore"/>.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection for chaining.</returns>
@@ -20,6 +22,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddInMemorySessionStore(this IServiceCollection services)
     {
         services.AddSingleton<IAmASessionStore, InMemorySessionStore>();
+        services.AddSingleton<IAmAContestFrameStore, InMemorySessionStore>();
         return services;
     }
 }

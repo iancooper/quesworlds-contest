@@ -159,7 +159,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
     - Add `public static ContestFrame Rehydrate(string prize, TargetNumber resistance, string? playerAbilityName, Rating? playerRating, IEnumerable<Modifier> modifiers)` to `src/QuestWorlds.Framing/ContestFrame.cs`
     - Populate backing fields directly; do not call `SetPlayerAbility` or `ApplyModifier`
 
-- [ ] **6.2 Move the frame port into `QuestWorlds.Framing`** *(structural)*
+- [x] **6.2 Move the frame port into `QuestWorlds.Framing`** *(structural)*
   - Declare `public interface IAmAContestFrameStore` in `QuestWorlds.Framing` with `SaveFrameAsync`, `GetFrameAsync`, `ClearFrameAsync` (ADR-0010 D1, D2)
   - Delete `QuestWorlds.Web.Services.IContestFrameStore` and `InMemoryContestFrameStore`
   - `ContestHub` depends on the new port and awaits it; all six call sites are already in `async Task` methods

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\QuestWorlds.Session\QuestWorlds.Session.csproj" />
+    <ProjectReference Include="..\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
   </ItemGroup>
 
 </Project>

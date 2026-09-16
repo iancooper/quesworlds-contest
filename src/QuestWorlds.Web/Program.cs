@@ -4,7 +4,6 @@ using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
 using QuestWorlds.Web.Hubs;
-using QuestWorlds.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,9 +25,6 @@ builder.Services.AddInMemorySessionStore();
 builder.Services.AddDiceRollerModule();
 builder.Services.AddResolutionModule();
 builder.Services.AddOutcomeModule();
-
-// Register web services
-builder.Services.AddSingleton<IContestFrameStore, InMemoryContestFrameStore>();
 
 var app = builder.Build();
 
