@@ -18,11 +18,12 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- QuestWorlds.Session only. The suite must never reference a store project: it is written
-       against the port, and referencing one store would let a case depend on that store's
-       implementation (ADR-0008 D5). -->
+  <!-- The two modules that declare the ports, and nothing else. The suite must never reference a
+       store project: it is written against the ports, and referencing one store would let a case
+       depend on that store's implementation (ADR-0008 D5). -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\QuestWorlds.Session\QuestWorlds.Session.csproj" />
+    <ProjectReference Include="..\..\src\QuestWorlds.Framing\QuestWorlds.Framing.csproj" />
   </ItemGroup>
 
 </Project>

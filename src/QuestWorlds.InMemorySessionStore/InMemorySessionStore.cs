@@ -38,6 +38,10 @@ public class InMemorySessionStore : IAmASessionStore, IAmAContestFrameStore
     public Task RemoveAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         _sessions.TryRemove(sessionId, out _);
+
+        // A frame has no life outside its session, so leaving one behind is an orphan nothing can
+        // reach and nothing will clean up. The SQLite store gets this from ON DELETE CASCADE.
+        _frames.TryRemove(sessionId, out _);
         return Task.CompletedTask;
     }
 

@@ -179,7 +179,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
     - Register the concrete class as a singleton, then forward **both** interfaces to it with `sp => sp.GetRequiredService<InMemorySessionStore>()` (ADR-0010 D4)
     - Registering `AddSingleton<IAmASessionStore, InMemorySessionStore>()` and `AddSingleton<IAmAContestFrameStore, InMemorySessionStore>()` separately produces two instances and fails this test — which is the point
 
-- [ ] **6.4 TEST + IMPLEMENT: a store honours the frame storage contract**
+- [x] **6.4 TEST + IMPLEMENT: a store honours the frame storage contract**
   - **USE COMMAND**: `/test-first when a store is used as a frame store it should honour the frame contract`
   - Test location: `tests/QuestWorlds.SessionStore.ContractTests`
   - Test file: `SessionStoreContract.cs` — extend the existing suite; change `CreateStore()` to return a type implementing both ports
