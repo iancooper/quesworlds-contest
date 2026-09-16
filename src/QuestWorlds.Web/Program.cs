@@ -1,8 +1,8 @@
 using QuestWorlds.DiceRoller;
-using QuestWorlds.InMemorySessionStore;
 using QuestWorlds.Outcome;
 using QuestWorlds.Resolution;
 using QuestWorlds.Session;
+using QuestWorlds.Web;
 using QuestWorlds.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +21,11 @@ builder.Services.AddSignalR();
 
 // Register QuestWorlds modules
 builder.Services.AddSessionModule();
-builder.Services.AddInMemorySessionStore();
+
+// Which store, and where its database lives, is a deployment decision — so it is made here, from
+// configuration, and nowhere else. Absent configuration keeps today's behaviour (ADR-0008 D4).
+builder.Services.AddConfiguredSessionStore(builder.Configuration);
+
 builder.Services.AddDiceRollerModule();
 builder.Services.AddResolutionModule();
 builder.Services.AddOutcomeModule();
