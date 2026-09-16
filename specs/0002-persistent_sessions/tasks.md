@@ -230,7 +230,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - Save replaces the whole aggregate in **one transaction**: upsert the row, delete and reinsert children (D4)
   - Register one instance behind both ports, exactly as 6.3 requires of any store
 
-- [ ] **7.3 TEST + IMPLEMENT: a session and its contest survive a restart**
+- [x] **7.3 TEST + IMPLEMENT: a session and its contest survive a restart**
   - **USE COMMAND**: `/test-first when a sqlite store is reopened should return the session and its contest frame`
   - Test location: `tests/QuestWorlds.SqliteSessionStore.Tests`
   - Test file: `When_a_sqlite_store_is_reopened_should_return_the_session_and_its_contest_frame.cs`
