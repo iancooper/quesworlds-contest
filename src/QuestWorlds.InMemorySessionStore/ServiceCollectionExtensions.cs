@@ -21,8 +21,12 @@ public static class ServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddInMemorySessionStore(this IServiceCollection services)
     {
-        services.AddSingleton<IAmASessionStore, InMemorySessionStore>();
-        services.AddSingleton<IAmAContestFrameStore, InMemorySessionStore>();
+        // One concrete singleton, both ports forwarded to it. Registering the class against each port
+        // instead gives an instance per port — two sets of state, and a frame the session store cannot
+        // see. It fails silently, and only in composition (ADR-0010 D4).
+        services.AddSingleton<InMemorySessionStore>();
+        services.AddSingleton<IAmASessionStore>(sp => sp.GetRequiredService<InMemorySessionStore>());
+        services.AddSingleton<IAmAContestFrameStore>(sp => sp.GetRequiredService<InMemorySessionStore>());
         return services;
     }
 }

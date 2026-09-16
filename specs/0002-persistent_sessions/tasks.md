@@ -166,7 +166,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   - `InMemorySessionStore` implements **both** ports
   - Verify `QuestWorlds.Framing.csproj` still has zero `ProjectReference` elements (AC15)
 
-- [ ] **6.3 TEST + IMPLEMENT: one store instance serves both ports**
+- [x] **6.3 TEST + IMPLEMENT: one store instance serves both ports**
   - **USE COMMAND**: `/test-first when a store is registered it should serve both ports from one instance`
   - Test location: `tests/QuestWorlds.InMemorySessionStore.Tests`
   - Test file: `When_a_store_is_registered_should_serve_both_ports_from_one_instance.cs`
