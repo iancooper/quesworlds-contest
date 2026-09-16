@@ -302,10 +302,15 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
 
 ## Phase 9 — Finishing
 
-- [ ] **9.1 Full solution green**
+- [x] **9.1 Full solution green**
   - `dotnet build` and `dotnet test` across every project (AC20)
   - Grep for `.Result`, `.Wait()`, `.GetAwaiter().GetResult()` in changed code — there should be none (AC14)
   - Confirm zero `ProjectReference` in both `QuestWorlds.Session.csproj` and `QuestWorlds.Framing.csproj` (AC2, AC15)
+
+  **Result**: build succeeded with 0 warnings and 0 errors; **212 tests passed**, none failed or
+  skipped, across all eight test assemblies; no sync-over-async anywhere in `src` or `tests`; and both
+  `QuestWorlds.Session.csproj` and `QuestWorlds.Framing.csproj` hold **zero** `ProjectReference`
+  elements. `Ce = 0` holds on both ports.
 
 - [ ] **9.2 Documentation**
   - `README.md` module table: add both store modules, and say what each holds — reviewers will not expect frames in something called a session store (ADR-0010 D5)
