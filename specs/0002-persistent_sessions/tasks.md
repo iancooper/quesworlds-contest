@@ -245,7 +245,7 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
     - Use the `Ordinal` columns to restore order
     - Fix whatever the test exposes in the mapper rather than relaxing the assertion
 
-- [ ] **7.4 TEST + IMPLEMENT: a fully populated session round-trips without loss**
+- [x] **7.4 TEST + IMPLEMENT: a fully populated session round-trips without loss**
   - **USE COMMAND**: `/test-first when a fully populated session is stored and read it should be unchanged`
   - Test location: `tests/QuestWorlds.SqliteSessionStore.Tests`
   - Test file: `When_a_fully_populated_session_is_stored_and_read_should_be_unchanged.cs`
