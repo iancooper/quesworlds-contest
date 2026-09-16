@@ -165,28 +165,50 @@ The web app references both stores and selects one at startup from `SessionStore
 
 From the issue's acceptance list, plus what FR8/FR9 add:
 
-- [ ] **AC1** — `QuestWorlds.Session` contains no implementation of `ISessionRepository`.
-- [ ] **AC2** — `QuestWorlds.Session.csproj` still has **zero** `ProjectReference` elements — Ce stays 0.
-- [ ] **AC3** — The in-memory store is its own module and references `QuestWorlds.Session`.
-- [ ] **AC4** — A test project can supply its own `ISessionRepository` without `InternalsVisibleTo` and without touching `QuestWorlds.Session`.
-- [ ] **AC5** — `ISessionIdGenerator` remains `internal`.
-- [ ] **AC6** — The existing Session tests pass. They go through `SessionCoordinatorBuilder`, which calls the no-argument `CreateCoordinator()`; the builder passes the in-memory store instead. **That is the only change expected to existing tests.**
-- [ ] **AC7** — `QuestWorlds.Web` runs unchanged in behaviour **with no configuration set**: it selects the in-memory store, and session handling works end to end as before.
-- [ ] **AC7a** — With `SessionStore:Provider = "Sqlite"`, the app starts, creates its schema, and serves a contest end to end.
-- [ ] **AC7b** — With `SessionStore:Provider` set to an unrecognised value, startup fails with a message naming the bad value and the valid ones.
-- [ ] **AC8** — With a substitute store that returns a *copy* on `Get` (mimicking an out-of-process adapter), a player who joins a session is still present when the session is next read. **This test fails today.**
-- [ ] **AC9** — A substitute store can reconstruct a `Session` with its id, GM, players, and state from data alone, using only `QuestWorlds.Session`'s public API.
-- [ ] **AC10** — `QuestWorlds.SqliteSessionStore` is its own module, references `QuestWorlds.Session`, and its SQLite dependency appears nowhere else.
-- [ ] **AC11** — One suite of contract tests passes against **both** stores, so "interchangeable" is demonstrated rather than asserted.
-- [ ] **AC12** — A session written through the SQLite store is readable by a *different* store instance over the same database — the store-and-reload path a restart takes. This is the criterion the in-memory store cannot satisfy and the spec's title depends on.
-- [ ] **AC13** — Substituting SQLite for in-memory requires no change to `QuestWorlds.Session`, `ISessionCoordinator`, or `ContestHub` — only a different registration.
-- [ ] **AC14** — `ISessionCoordinator` and the port are async, and no implementation blocks on a task (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`).
-- [ ] **AC15** — `IAmAContestFrameStore` is declared in `QuestWorlds.Framing`, which keeps **zero** `ProjectReference` elements, and `QuestWorlds.Web` contains no storage implementation of any kind.
-- [ ] **AC16** — One store instance serves both ports: a frame saved via `IAmAContestFrameStore` is visible to a store resolved as `IAmASessionStore`, and vice versa. (Registering the class twice would silently give two instances; this is the criterion that catches it.)
-- [ ] **AC17** — With the SQLite store, a session **and its in-progress contest frame** both survive a simulated restart, read back by a different store instance over the same database.
-- [ ] **AC18** — Removing a session removes its frame and that frame's modifiers, leaving no orphaned rows.
-- [ ] **AC19** — `GetAsync` on **both** stores returns a copy: mutating the returned session without saving leaves the stored session unchanged.
-- [ ] **AC20** — The whole solution builds and every existing test across all test projects passes.
+- [x] **AC1** — `QuestWorlds.Session` contains no implementation of `ISessionRepository`.
+  - **Evidence**: No type in `QuestWorlds.Session` implements `IAmASessionStore` — the module declares the port (`IAmASessionStore.cs`) and consumes it (`SessionCoordinator`, `SessionModule`) and nothing more. *(Port renamed from `ISessionRepository` in Phase 1.)*
+- [x] **AC2** — `QuestWorlds.Session.csproj` still has **zero** `ProjectReference` elements — Ce stays 0.
+  - **Evidence**: `QuestWorlds.Session.csproj` holds **zero** `ProjectReference` elements — checked at 9.1.
+- [x] **AC3** — The in-memory store is its own module and references `QuestWorlds.Session`.
+  - **Evidence**: `QuestWorlds.InMemorySessionStore` is its own project, referencing `QuestWorlds.Session` and `QuestWorlds.Framing` (the latter because it implements the frame port too, ADR-0010).
+- [x] **AC4** — A test project can supply its own `ISessionRepository` without `InternalsVisibleTo` and without touching `QuestWorlds.Session`.
+  - **Evidence**: `tests/QuestWorlds.SessionStore.ContractTests` supplies stores through `SessionStoreContract<T>`; **no `InternalsVisibleTo` exists anywhere** in `src` or `tests`.
+- [x] **AC5** — `ISessionIdGenerator` remains `internal`.
+  - **Evidence**: `SessionIdGenerator.cs:5` — `internal interface ISessionIdGenerator`, and the class is `internal` too.
+- [x] **AC6** — The existing Session tests pass. They go through `SessionCoordinatorBuilder`, which calls the no-argument `CreateCoordinator()`; the builder passes the in-memory store instead. **That is the only change expected to existing tests.**
+  - **Evidence**: The 31 Session tests pass. `SessionCoordinatorBuilder` calls `SessionModule.CreateCoordinator(new InMemorySessionStore())` as predicted. **One existing test changed beyond the prediction**: `Should_resolve_ISessionCoordinator` now registers a store, which is ADR-0008 D3's intent (a host that forgets a store fails at startup), not a regression.
+- [x] **AC7** — `QuestWorlds.Web` runs unchanged in behaviour **with no configuration set**: it selects the in-memory store, and session handling works end to end as before.
+  - **Evidence**: `When_session_store_provider_is_configured_should_select_the_matching_store.No_provider_setting_should_give_the_in_memory_store` — drives the real composition root with no provider configured.
+- [x] **AC7a** — With `SessionStore:Provider = "Sqlite"`, the app starts, creates its schema, and serves a contest end to end.
+  - **Evidence**: Same file, `The_sqlite_provider_should_give_the_sqlite_store`. Schema creation and serving a contest end to end were confirmed by hand in 8.2: the app created `questworlds-sessions.db` with all four tables at startup and a contest was played to `ResolvingContest`.
+- [x] **AC7b** — With `SessionStore:Provider` set to an unrecognised value, startup fails with a message naming the bad value and the valid ones.
+  - **Evidence**: Same file, `An_unrecognised_provider_should_stop_the_application_starting` — asserts the message names `Postgres`, `InMemory` and `Sqlite`.
+- [x] **AC8** — With a substitute store that returns a *copy* on `Get` (mimicking an out-of-process adapter), a player who joins a session is still present when the session is next read. **This test fails today.**
+  - **Evidence**: `When_a_player_joins_a_session_should_be_persisted_to_the_store` plus the contract case `Mutating_a_session_that_was_got_should_not_change_what_is_stored`, run against both stores. Was genuinely red before 3.1.
+- [x] **AC9** — A substitute store can reconstruct a `Session` with its id, GM, players, and state from data alone, using only `QuestWorlds.Session`'s public API.
+  - **Evidence**: `When_rehydrating_a_session_should_restore_id_gm_players_and_state` — `Session.Rehydrate` from data alone, public API only.
+- [x] **AC10** — `QuestWorlds.SqliteSessionStore` is its own module, references `QuestWorlds.Session`, and its SQLite dependency appears nowhere else.
+  - **Evidence**: `QuestWorlds.SqliteSessionStore` is its own project referencing `QuestWorlds.Session` and `QuestWorlds.Framing`. `Microsoft.Data.Sqlite` appears in exactly two `.csproj` files: the module, and **its own test project** (which needs `SqliteConnection.ClearAllPools()` to release the file). No other production module sees it.
+- [x] **AC11** — One suite of contract tests passes against **both** stores, so "interchangeable" is demonstrated rather than asserted.
+  - **Evidence**: `SessionStoreContract<T>` — **16 cases**, run twice: `When_an_in_memory_store_is_used_as_a_session_store` and `When_a_sqlite_store_is_used_as_a_session_store`. 32 tests from one suite.
+- [x] **AC12** — A session written through the SQLite store is readable by a *different* store instance over the same database — the store-and-reload path a restart takes. This is the criterion the in-memory store cannot satisfy and the spec's title depends on.
+  - **Evidence**: `When_a_sqlite_store_is_reopened_should_return_the_session_and_its_contest_frame` — writes with one instance, clears all pools, reads with a different instance over the same file.
+- [x] **AC13** — Substituting SQLite for in-memory requires no change to `QuestWorlds.Session`, `ISessionCoordinator`, or `ContestHub` — only a different registration.
+  - **Evidence**: The whole SQLite phase (`b9f3a30..4bd1bcd`) touched **no file** under `QuestWorlds.Session/`, and neither `SessionCoordinator` nor `ContestHub`. It added one module and its tests.
+- [x] **AC14** — `ISessionCoordinator` and the port are async, and no implementation blocks on a task (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`).
+  - **Evidence**: No `.Result`, `.Wait()` or `.GetAwaiter().GetResult()` anywhere in `src` or `tests` — checked at 9.1.
+- [x] **AC15** — `IAmAContestFrameStore` is declared in `QuestWorlds.Framing`, which keeps **zero** `ProjectReference` elements, and `QuestWorlds.Web` contains no storage implementation of any kind.
+  - **Evidence**: `IAmAContestFrameStore` is declared in `QuestWorlds.Framing`, whose `.csproj` holds **zero** `ProjectReference` elements. No type under `QuestWorlds.Web` implements either port; it only consumes them.
+- [x] **AC16** — One store instance serves both ports: a frame saved via `IAmAContestFrameStore` is visible to a store resolved as `IAmASessionStore`, and vice versa. (Registering the class twice would silently give two instances; this is the criterion that catches it.)
+  - **Evidence**: `When_a_store_is_registered_should_serve_both_ports_from_one_instance` and `When_a_sqlite_store_is_registered_should_serve_both_ports_from_one_instance` — both assert `ReferenceEquals` on the two resolved instances. Both were genuinely red against the two-instance registration.
+- [x] **AC17** — With the SQLite store, a session **and its in-progress contest frame** both survive a simulated restart, read back by a different store instance over the same database.
+  - **Evidence**: `When_a_sqlite_store_is_reopened_should_return_the_session_and_its_contest_frame` — three cases: the session, the frame, and that the restored contest is still resolvable. Confirmed again by hand in 8.2 against the live database.
+- [x] **AC18** — Removing a session removes its frame and that frame's modifiers, leaving no orphaned rows.
+  - **Evidence**: The frame half is the contract case `Removing_a_session_should_remove_its_frame_too`, run against both stores. The **modifier rows** half rests on `ON DELETE CASCADE` from `ContestModifiers` to `ContestFrames`, now covered by `When_a_session_is_removed_should_leave_no_orphaned_rows` — four cases counting rows per table after `RemoveAsync`, plus one asserting `PRAGMA foreign_keys` is on, because SQLite defaults it off and with it off both cascades silently delete nothing while every other test still passes. Proved to bite by two deliberate breaks: dropping `RemoveAsync`'s frame delete reddens `ContestFrames` and `ContestModifiers`; forcing the pragma off reddens `Participants`, `ContestModifiers` and the pragma case.
+- [x] **AC19** — `GetAsync` on **both** stores returns a copy: mutating the returned session without saving leaves the stored session unchanged.
+  - **Evidence**: Contract cases `Mutating_a_session_that_was_got_should_not_change_what_is_stored` and `Mutating_a_frame_that_was_got_should_not_change_what_is_stored`, both run against both stores. Both were broken on purpose to prove they bite.
+- [x] **AC20** — The whole solution builds and every existing test across all test projects passes.
+  - **Evidence**: `dotnet build QuestWorlds.slnx` succeeds with 0 warnings and 0 errors; `dotnet test` gives **217 passed, 0 failed, 0 skipped** across all eight test assemblies.
 
 **Testing approach**: xUnit, following the repository's existing `When_<scenario>_should_<expectation>` class-per-scenario convention, with builders for arrangement. Three test projects are involved:
 
