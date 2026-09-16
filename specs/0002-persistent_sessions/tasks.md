@@ -312,9 +312,13 @@ The port stays `internal` throughout this phase. Nothing about the module's publ
   `QuestWorlds.Session.csproj` and `QuestWorlds.Framing.csproj` hold **zero** `ProjectReference`
   elements. `Ce = 0` holds on both ports.
 
-- [ ] **9.2 Documentation**
+- [x] **9.2 Documentation**
   - `README.md` module table: add both store modules, and say what each holds — reviewers will not expect frames in something called a session store (ADR-0010 D5)
   - Document `SessionStore:Provider` and its two values, **with** the reconnection limitation stated next to it
+
+  Also records the port-ownership rule beside the table (`IAmASessionStore` in `Session`,
+  `IAmAContestFrameStore` in `Framing`, zero project references in either), and corrects the Design
+  paragraph's claim that persistence is still hypothetical.
 
 - [ ] **9.3 Close the loop**
   - Walk the 20 acceptance criteria in `requirements.md` and tick them off against real tests
